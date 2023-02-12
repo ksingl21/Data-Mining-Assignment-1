@@ -268,6 +268,70 @@ rpDT2_p <- prune(rpDT2, cp = optCP)
 
 ```
 
+Random forest model
+```{r}
+library('randomForest')
+set.seed(576)
+
+rfModel = randomForest(y ~ ., data=mdTrn, ntree=200, importance=TRUE )
+importance(rfModel) %>% view()
+varImpPlot(rfModel)
+
+#Accuracy-
+accPerf <-performance(rocPredTst, "acc")
+ plot(accPerf)
+
+#AUC-
+aucPerf=performance(rocPredTst, "auc")
+aucPerf@y.values
+
+
+rfModel = randomForest(y ~ ., data=mdTrn, ntree=100, importance=TRUE )
+importance(rfModel) %>% view()
+varImpPlot(rfModel)
+
+#Accuracy-
+accPerf <-performance(rocPredTst, "acc")
+ plot(accPerf)
+
+#AUC-
+aucPerf=performance(rocPredTst, "auc")
+aucPerf@y.values
+
+
+rfModel = randomForest(y ~ ., data=mdTrn, ntree=50, importance=TRUE )
+importance(rfModel) %>% view()
+varImpPlot(rfModel)
+
+#Accuracy-
+accPerf <-performance(rocPredTst, "acc")
+ plot(accPerf)
+
+#AUC-
+aucPerf=performance(rocPredTst, "auc")
+aucPerf@y.values
+
+
+
+#Classification performance
+CTHRESH = 0.5
+
+#Training Data
+rfPred<-predict(rfModel,mdTrn, type="prob")
+pred = ifelse(rfPred[, 'yes'] >= CTHRESH, 'yes', 'no')
+table( pred = pred, true=mdTrn$y)
+mean(pred==mdTrn$y)
+
+rfPred<-predict(rfModel,mdTst, type="prob")
+pred = ifelse(rfPred[, 'yes'] >= CTHRESH, 'yes', 'no')
+table( pred = pred, true=mdTst$y)
+mean(pred==mdTst$y)
+
+
+#Roc Curve
+perf_rfTst=performance(prediction(predict(rfModel,mdTst, type="prob")[,2], mdTst$y), "tpr", "fpr")
+plot(perf_rfTst)
+
 
 Develop a GBM Model
 ```{r}
