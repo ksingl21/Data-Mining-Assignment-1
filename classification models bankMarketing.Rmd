@@ -1,7 +1,8 @@
 ---
 title: "Assignment 1 Classification models - bankData"
 author: "Athena Gonzalez, Rosaura Ocampo,Kapil Singla"
-
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -19,14 +20,14 @@ When you click the **Knit** button a document will be generated that includes bo
 IDS 572 -  Decision trees and other models,  classification performance evaluation
 
 ```{r}
-#load the tidyverse set of libraries - for data manipulations
+# load the tidyverse set of libraries - for data manipulations {Kapil}
 library(tidyverse)
 
 #read the data, and examine summary statistics
 library(readr)
-bankData <- read_delim("/Users/kapilsingla/Downloads/bank-full.csv",delim = ";",col_names = TRUE,col_types = NULL,show_col_types = FALSE)
+bankData <- read_delim("/Users/kapilsingla/desktop/data mining projects/Data-mining-assignment-1/bank-full.csv",delim = ";",col_names = TRUE,col_types = NULL,show_col_types = FALSE)
 View(bankData)
-   #read_csv2 is used since the data has ';' as delimiter
+   
 
 #look at the variables 
 glimpse(bankData)
@@ -36,18 +37,18 @@ colSums(is.na(bankData))
 #or to get the names of columns in md which have missing values
 colnames(bankData)[colSums(is.na(bankData))>0]
 
-#Duplicate data
-bd = bankData
+#Duplicate data as bData
+bData = bankData
 
 #Convert character variable to factor variable by listing all the variables.
-bd <- bd %>% mutate(job=as.factor(job),marital=as.factor(marital),education=as.factor(education))
+bData <- bData %>% mutate(job=as.factor(job),marital=as.factor(marital),education=as.factor(education))
 
 # or convert all Chanracter variables into factor without mentioning the column names. We can convert any data type to factor using below command. We used this command to convert.
-bd[sapply(bd, is.character)] <- lapply(bd[sapply(bd, is.character)], as.factor)
+bData[sapply(bData, is.character)] <- lapply(bData[sapply(bData, is.character)], as.factor)
 
 #get summary stats of the variables
-summary(bd)
-
+summary(bData)
+str(bData)
 
 ```
 
@@ -56,18 +57,19 @@ Data exploration
 ```{r}
 
 #what is the proportion of yes,no values in the dependent variable y?
-bData %>% group_by(y) %>% summarize(n())
-    #or bData %>% group_by(y) %>% tally()
-  
+prop = bd %>% group_by(y) %>% summarize(n())
+    #or bd %>% group_by(y) %>% tally()
+glimpse(prop)
+
 #To calculate the proportion of examples in each class                                  
-bData %>% group_by(y) %>% summarise(n=n()) %>% mutate(proportion=n/sum(n))
+YProp<- bd %>% group_by(y) %>% summarise(n=n()) %>% mutate(proportion=n/sum(n))
 
 #summarize all numeric variables, grouped by dependent(target) variable
-bData %>% group_by(y) %>% summarize_if(is.numeric, mean)
+allNumProp<-bd %>% group_by(y) %>% summarize_if(is.numeric, mean)
     #what does this do, and what do you observe
-
+glimpse(allNumProp)
 #what about the factor variables - how do they relate to the dependent y?
-bData %>% group_by(job, y) %>% summarize( n=n())
+fact=bd %>% group_by(job, y) %>% summarize( n=n())
     #for each type of job, gives the count of yes,no values of y
 
 #If we then want to see the proportions 
@@ -148,17 +150,19 @@ mData <- mData %>% select(-c('ageGroup'))
 
 Decision trees using the rpart package
 ```{r}
+#Kapil
 library(rpart)
 
 #develop a rpart decision tree model
-rpDT1 <- rpart(y ~ ., data=mData, method="class")
+rpDT1 <- rpart(y ~ ., data=bData, method="class")
 
 #print the model -- text form
 print(rpDT1)
    #what does the model look like??
+#Answer: We can see there is imbalance classification in the root node with prior probabilities of 0.883, 0.117. Which is caused by proportion of 'Y' value in population. This will create poor predictions if not dealt with.
 
-#to correct for class-imbalance, use the prior parameter
-rpDT2 = rpart(y ~ ., data=mData, method="class", parms=list(prior=c(.5,.5)))
+#to correct for class-imbalance, use the prior parameter to define equal probabilities.
+rpDT2 = rpart(y ~ ., data=bData, method="class", parms=list(prior=c(.5,.5)))
 
 ```
 
@@ -166,13 +170,11 @@ rpDT2 = rpart(y ~ ., data=mData, method="class", parms=list(prior=c(.5,.5)))
 
 Display/plot the tree 
 ```{r}
-plot(rpDT2, uniform=TRUE,  main="Decision Tree for Bank marketing response")
-text(rpDT2, use.n=TRUE, all=TRUE, cex=.7)
-
+#Kapil
 
 #Nicer way to display the tree using the rpart.plot package
 library(rpart.plot)
-
+rpart.plot::prp(rpDT1, type=2, extra=1)
 rpart.plot::prp(rpDT2, type=2, extra=1)
 # more information on such plots are in "Plotting rpart trees with the rpart.plot package" (http://www.milbo.org/rpart-plot/prp.pdf)
 
@@ -191,7 +193,7 @@ summary(rpDT2)
 
 
 #Variable importance as given by a decision tree model
-rpDT1$variable.importance
+rpDT2$variable.importance
    #In class, we covered how the importance values are obtained - we should have a good understanding of this.
 
 
@@ -201,9 +203,9 @@ rpDT1$variable.importance
 
 Let's take a look at some details on complexity parameter, and how this can help determine the best (pruned) tree  
 ```{r}
-#Grow a tree, with cp=0
-rpDT1 = rpart(y ~ ., data=mData, method="class", control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)))
-#Is this a larger tree?
+#Grow a tree, with cp=0 and equal prior probability 
+rpDT1 = rpart(y ~ ., data=bData, method="class", control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)))
+#Is this a larger tree? answer: Yes
 
 #Tree size and performance for different cp (complexity parameter) values
 printcp(rpDT1)
@@ -244,9 +246,9 @@ optCP <- rpDT1$cptable[optCP_i, "CP"]
 rpDT1_p <- prune(rpDT1, cp = optCP)
 
 #view the plot of the pruned tree
-plot(rpDT1_p, uniform=TRUE,  main="Decision Tree for Bank Marketing")
+plot(rpDT1_p, uniform=TRUE,  main="Decision Tree for Bank Marketing Pruned")
 text(rpDT1_p, use.n=TRUE, all=TRUE, cex=.7)
-
+summary(rpDT1_p)
    # Compare with the unpruned tree -- do you notice how it has been pruned
 
 
@@ -260,7 +262,7 @@ Performance on the training data - resubtitution error
 ```{r}
 
 #obtain the predictions from the DT
-predDT1<-predict(rpDT1_p, mData, type='class')
+predDT1<-predict(rpDT1_p, bData, type='class')
 
 #confusion matrix using the table command
 table(actuals=bData$y, preds=predDT1)
@@ -470,7 +472,7 @@ plot(liftPerf, main="Lift chart")
 
 
 
-C5.0 decision trees
+Develop C5.0 decision trees
 ```{r}
 library(C50)
 
