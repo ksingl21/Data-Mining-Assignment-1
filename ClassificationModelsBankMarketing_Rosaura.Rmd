@@ -155,11 +155,9 @@ printcp(rpDT1)
 plotcp(rpDT1)
 
 
-
 #In the cptable display, you look up the CP value which will be closest to the min_xerror+xstd 
 #      -- this is the best CP value, corresponding to the best pruned tree.  
 #         To get the best tree, we can prune using this CP value.
-
 
 mincp_i <- which.min(rpDT1$cptable[, 'xerror'])  #the row (index) corresponding to the min xerror
 
@@ -260,7 +258,16 @@ table(pred = predTst, true=mdTst$y)
 mean(predTst==mdTst$y)
 
 ```
+#Develop C5.0 Model
+library(C50)
 
+#build a tree model
+c5DT1 <- C5.0(y ~ ., data=mdTrn, control=C5.0Control(minCases=10))
+
+#model details
+summary(c5DT1)
+
+#--------------
 Random forest model
 ```{r}
 library('randomForest')
