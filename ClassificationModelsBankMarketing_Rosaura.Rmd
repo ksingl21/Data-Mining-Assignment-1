@@ -475,7 +475,7 @@ summary(gbm_M1)
 bestIter<-gbm.perf(gbm_M1, method='cv')
   
    #Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis (n=1000, sh=0.025)
-   400 when n=500, sh=0.025
+   #400 when n=500, sh=0.025
 
 scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
 head(scores_gbmM1)
@@ -530,6 +530,7 @@ abline(a=0, b= 1)
 aucPerf_gbmM1=performance(pred, "auc")
 aucPerf_gbmM1@y.values
 
+
 2e. Develop a Naive Bayes Model
 ```{r}
 library(naivebayes)
@@ -546,6 +547,22 @@ pred_nbM1Trn = prediction(nbPred1Trn[,2], mdTrn$y)
 perf_nbM1Trn <- performance(pred_nbM1Trn, "tpr","fpr")
 plot(perf_nbM1Trn)
 abline(a=0, b= 1)
+
+#AUC
+aucPerfnbM1 <- performance(pred_nbM1Trn , "auc")
+aucPerf@y.values
+
+#Accuracy 
+accPerfnbM1 <- performance(pred_nbM1Trn, "acc")
+plot(accPerf)
+
+#optimal threshold for max overall accuracy
+accPerfnbM1@x.values[[1]][which.max(accPerfnbM1@y.values[[1]])]
+
+
+#optimal cost with different costs for fp and fn
+costPerfnbM1 = performance(pred_nbM1Trn, "cost", cost.fp = 1, cost.fn = 3)
+costPerfnbM1@x.values[[1]][which.min(costPerfnbM1@y.values[[1]])]
 
 #Lift Curve for nbM1 trn
 sc_nbM1Trn <- mdTrn %>%  select("y")
