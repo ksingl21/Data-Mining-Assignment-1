@@ -475,6 +475,14 @@ library(gbm)
 #gbm looks for 0,1 values in the dependent variable -- obtained here using unclass()
 gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
+gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+
+gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+
+
+#Test Data
+gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+
 
 #Look at the resulting model
 gbm_M1
