@@ -280,9 +280,6 @@ abline(0,1)
 
 #How does this compare with the training data?
 
-```
-Other performance from ROCR
-```{r}
 
 #AUC value
 aucPerf=performance(rocPredTst, "auc")
