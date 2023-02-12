@@ -434,16 +434,16 @@ trnSc[1:10,]
 plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
 abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")
 
-trnSc["bucket"]<- ntile(-trnSc[,"score"], 10) 
+trnSc["y"]<- ntile(-trnSc[,"score"], 10) 
 
-dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
+dLifts <- trnSc %>% group_by(numResponse) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
 respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
 
 
 
 summary(dLifts)
 
-plot(dLifts$bucket, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
+plot(dLifts$numResponse, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
 barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
 
 
@@ -497,6 +497,12 @@ trnSc["bucket"]<- ntile(-trnSc[,"score"], 10)
 
 dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
 respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
+summary(dLifts)
+
+plot(dLifts$numResponse, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
+barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
+
+
 
 library('ROCR')
 #ROC curve
