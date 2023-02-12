@@ -422,7 +422,7 @@ plot(perf_rfTst)
 
 
 ##Lift Analysis
-predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+predTrnProb=predict(rfModel, mdTrn, type='prob')
 head(predTrnProb)
 
 trnSc <- mdTrn %>%  select("y")   
@@ -481,7 +481,7 @@ scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response
 head(scores_gbmM1)
      
      #Lift Analysis ntree=1000, shrinkage 0.025
-predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+predTrnProb=predict(gbm_M1, mdTrn, type='prob')
 head(predTrnProb)
 
 trnSc <- mdTrn %>%  select("y")   
@@ -521,7 +521,8 @@ plot(rocPerf_gbmM1)
 abline(a=0, b= 1)
 ```
 
-
+aucPerf_gbmM1=performance(pred, "auc")
+aucPerf_gbmM1@y.values
 
 2e. Develop a Naive Bayes Model
 ```{r}
