@@ -23,9 +23,8 @@ bData <- bankData %>% mutate_if(is.character,as.factor)
 
 str(bData)
 
-
 #calculate the column sums - the number of missing values in each column
-colSums(is.na(bankData))
+colSums(is.na(bData))
 #there are no missing values
 
 #get summary statistics on the variables
@@ -35,29 +34,33 @@ summary(bData)
 
 1b. Data Exploration
 ```{r}
-#proportion of yes,no values in the dependent variable y?
+#Number of yes,no values in the dependent variable y
 bData %>% group_by(y) %>% summarize(n())
-#calculate the proportion of examples in each class                                  
+#Proportion of yes,no values in the dependent variable y                                  
 bData %>% group_by(y) %>% summarize(n=n()) %>% mutate(proportion=n/sum(n))
 
 
 #summarize all numeric variables, grouped by dependent(target) variable
 bData %>% group_by(y) %>% summarize_if(is.numeric, mean)
-    #what does this do, and what do you observe
+#Separated data in each numeric variable by response variable and found the mean
 
-#what about the factor variables - how do they relate to the dependent y?
+#summarize the factor variables
 bData %>% group_by(job, y) %>% summarize( n=n())
-    #for each type of job, gives the count of yes,no values of y
-#If we then want to see the proportions 
-bData %>% group_by(job, y) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% view() 
+bData %>% group_by(marital, y) %>% summarize( n=n())
+bData %>% group_by(education, y) %>% summarize( n=n())
+#for each type of factor variable, gives the count of yes,no values of y
 
-#Check what you get with the group_by variables listed in different order
-bData %>% group_by(y, job) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% view()
-    #Notice the difference -- why do you get this difference?  And which output do you find more useful?
+#Proportions of the factor variables
+bData %>% group_by(job, y) %>% summarize( n=n()) %>% mutate(proportion=n/sum(n))
+bData %>% group_by(marital, y) %>% summarize( n=n()) %>% mutate(proportion=n/sum(n))
+bData %>% group_by(education, y) %>% summarize( n=n()) %>% mutate(proportion=n/sum(n))
+
 
 #Look at other variables
 bData %>% group_by(poutcome, y) %>% tally()
-   #what do you observe?  Might this variable be useful in predicting y?
+bData %>% group_by(contact, y) %>% tally()
+bData %>% group_by(campaign, y) %>% tally()
+
 ```
 
 
