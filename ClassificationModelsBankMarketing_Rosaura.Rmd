@@ -73,24 +73,21 @@ ggplot(bData, aes(age,  color=y) ) + geom_boxplot()
 #density plot
 ggplot(bData, aes(age,  color=y) ) + geom_density()
 
-#view response by different age ranges - create a ageGroup variable using the cut function
+#view response by different age ranges 
 bData$ageGroup <- cut(bData$age, breaks = c(0, 30, 40, 50, 60, 100))
-bData %>% group_by(ageGroup, y) %>% tally()
-bData %>% group_by(ageGroup, y) %>% tally() %>% mutate(propResp=n/sum(n))
+bData %>% group_by(ageRanges, y) %>% tally()
+bData %>% group_by(ageRanges, y) %>% tally() %>% mutate(propResp=n/sum(n))
 
-#plot the response rate by age group
-tmp <-bData %>% group_by(ageGroup, y) %>% tally() %>% mutate(propResp=n/sum(n)) 
-ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity')
- #or
-ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity', position = position_dodge())
-
+#plot the response rate by age ranges
+tmp <-bData %>% group_by(ageRanges, y) %>% tally() %>% mutate(propResp=n/sum(n)) 
+ggplot(tmp, aes(y=propResp, x=ageRanges, fill=y))+geom_bar(stat = 'identity')
 
 
 #Look at duration of calls 
+summary(bData$duration)
 ggplot(bData, aes(duration,  color=y) ) + geom_boxplot()
-ggplot(bData, aes(duration,  color=y) ) + geom_density()
 
-#Look also at number of calls
+#Look at number of calls
 summary(bData$campaign)
 ggplot(bData, aes(campaign,  color=y) ) + geom_boxplot()
 
@@ -102,11 +99,11 @@ ggplot(bData, aes(duration, campaign, color=y))+geom_point()
 
 Selecting Data for Developing Predictive Models
 ```{r}
-#select variables to be used for developing the predictive model
+#select variables to be used for developing predictive modes - only using client variables so the following are removed
 mData <- bData %>% select(-c('contact', 'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome'))
 
-#Also remove ageGroup which you created for data exploration
-mData <- mData %>% select(-c('ageGroup'))
+#Removing ageRanges which was created for data exploration
+mData <- mData %>% select(-c('ageRanges'))
 ```
 
 
