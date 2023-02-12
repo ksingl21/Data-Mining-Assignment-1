@@ -543,22 +543,70 @@ table(pred=nbPred1[, 2] > THRESH2, actual=mdTrn$y)
 THRESH3=0.8
 table(pred=nbPred1[, 2] > THRESH3, actual=mdTrn$y)
 
-#Draw the ROC curve for nbM1
+#ROC curve for nbM1
 pred_nbM1=prediction(nbPred1[,2], mdTrn$y)
 rocPerf_nbM1 <- performance(pred_nbM1, "tpr","fpr")
 plot(rocPerf_nbM1)
 abline(a=0, b= 1)
 
+#Lift Curve for nbM1
+trnSc_nbM1 <- mdTrn %>%  select("y")   # selects the OUTCOME column into trnSc
+trnSc_nbM1$score<-pred_nbM1[, 2]
+trnSc_nbM1<-trnSc_nbM1[order(trnSc_nbM1$score, decreasing=TRUE),]
+trnSc_nbM1$cumResponse<-cumsum(trnSc_nbM1$y == "yes")
+
+
+
 #Develop a naive-Bayes model with kernel density estimation
 nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
 plot(nbM2)
 
-#Draw the ROC curve for nbM2
+#ROC curve for nbM2
 nbPred2 = predict(nbM2, mdTrn, type='prob')
 pred_nbM2=prediction(nbPred2[,2], mdTrn$y)
 rocPerf_nbM2 <- performance(pred_nbM2, "tpr","fpr")
 plot(rocPerf_nbM2)
 abline(a=0, b= 1)
+
+#get the 'scores' from applying the model to the data
+predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+head(predTrnProb)
+
+#So the two column in predTrnProb gives the predicted prob for 'no' and or 'yes' -- assume 'yes' is the class of #interest. Next we sort the data based on these values, group into say, 10 groups (deciles), and calculate #cumulative response in each group.
+
+
+#Create a data-frame with only the model scores and the actual class  (OUTCOME) values
+trnSc <- mdTrn %>%  select("y")   # selects the OUTCOME column into trnSc
+trnSc$score<-predTrnProb[, 2]  #add a column named 'Score' with prob(default) values in the first column of predTrnProb  (note: first column has index of 1)
+
+#take a look at trnSc
+head(trnSc)
+
+#sort by score
+trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
+
+#we will next generate the cumulative sum of "yes" values of the target -- note that y is a factor variable, so we cannot simply sum these;  
+trnSc$cumResponse<-cumsum(trnSc$y == "yes")
+
+#take a look at the first 10 row in trnSc
+trnSc[1:10,]
+
+#Plot the cumDefault values (y-axis) by numCases (x-axis)
+plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")  #diagonal line
+
+
+
+#On the tst data
+predTstProb=predict(rpDT2_p, mdTst, type='prob')
+tstSc <- mdTst %>%  select("y")
+tstSc$score<-predTstProb[, 2]
+tstSc<-tstSc[order(tstSc$score, decreasing=TRUE),]
+tstSc$cumResponse<-cumsum(tstSc$y == "yes")
+
+plot( tstSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(tstSc$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
+
 
 ```
 
