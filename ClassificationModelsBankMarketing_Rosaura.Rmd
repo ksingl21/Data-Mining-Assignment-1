@@ -335,6 +335,7 @@ plot(perf_rfTst)
 
 Develop a GBM Model
 ```{r}
+library(gbm)
 
 #gbm looks for 0,1 values in the dependent variable -- obtained here using unclass()
 gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
@@ -342,18 +343,22 @@ gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.
 
 #Look at the resulting model
 gbm_M1
-  #what is the best iteration?  
 
 #variable importance
 summary(gbm_M1)
+#variables of importance include age, balance, job, housing, education, loan, marital, and default. All listed in decreasing order ot importance and rel. inf values.
 
 #plot of cv performance by iterations
 bestIter<-gbm.perf(gbm_M1, method='cv')
    #bestIter gives the best iteration value, which we can use for obtaining predictions
+   Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis.
 
 scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
 head(scores_gbmM1)
      #these are the scores for the '1' class
+     
+     Output--
+     [1] 0.05912149 0.04164951 0.10254525 0.04322389 0.15613260 0.08583831
 
 #Obtain various performance metrics as earlier
 library('ROCR')
