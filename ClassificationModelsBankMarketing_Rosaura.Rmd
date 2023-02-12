@@ -524,10 +524,14 @@ nbPred = predict(nbM1, mdTrn, type='prob')
 head(nbPred)
    #so the second column of values gives the prob for "yes" ?
 
-THRESH=0.5
-table(pred=nbPred[, 2] > THRESH, actual=mdTrn$y)
-  
-#Try other thresholds
+#attempting various thresholds
+THRESH1=0.2
+table(pred=nbPred[, 2] > THRESH1, actual=mdTrn$y)
+THRESH2=0.5
+table(pred=nbPred[, 2] > THRESH2, actual=mdTrn$y)
+THRESH3=0.8
+table(pred=nbPred[, 2] > THRESH3, actual=mdTrn$y)
+
 #Draw the ROC curve a before
 
 
