@@ -1,7 +1,6 @@
 ---
   title: "Assignment 1 Classification models - bankData"
 author: "Athena Gonzalez, Rosaura Ocampo, Kapil Singla"
-adding a change editing
 ---
 
 Loading and Preparing Data
