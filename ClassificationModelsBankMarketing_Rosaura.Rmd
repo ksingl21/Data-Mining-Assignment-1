@@ -421,6 +421,33 @@ plot(perf_rfTst)
 ```
 
 
+##Lift Analysis
+predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+head(predTrnProb)
+
+trnSc <- mdTrn %>%  select("y")   
+trnSc$score<-predTrnProb[, 2]
+
+trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
+trnSc$cumResponse<-cumsum(trnSc$y == "yes")
+trnSc[1:10,]
+plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")
+
+trnSc["bucket"]<- ntile(-trnSc[,"score"], 10) 
+
+dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
+respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
+
+
+
+summary(dLifts)
+
+plot(dLifts$bucket, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
+barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
+
+
+
 2d. Develop a GBM Model
 ```{r}
 library(gbm)
@@ -453,8 +480,25 @@ bestIter<-gbm.perf(gbm_M1, method='cv')
 scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
 head(scores_gbmM1)
      
-library('ROCR')
+     #Lift Analysis ntree=1000, shrinkage 0.025
+predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+head(predTrnProb)
 
+trnSc <- mdTrn %>%  select("y")   
+trnSc$score<-predTrnProb[, 2]
+
+trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
+trnSc$cumResponse<-cumsum(trnSc$y == "yes")
+trnSc[1:10,]
+plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")
+
+trnSc["bucket"]<- ntile(-trnSc[,"score"], 10) 
+
+dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
+respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
+
+library('ROCR')
 #ROC curve
 pred_gbmM1 <- prediction( scores_gbmM1, mdTrn$y, label.ordering = c("no", "yes"))
 rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
