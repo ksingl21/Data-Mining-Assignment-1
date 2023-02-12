@@ -97,7 +97,7 @@ ggplot(bData, aes(duration, campaign, color=y))+geom_point()
 ```
 
 
-Selecting Data for Developing Predicitve Models
+Selecting Data for Developing Predictive Models
 ```{r}
 #select variables to be used for developing the predictive model
 mData <- bData %>% select(-c('contact', 'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome'))
@@ -107,7 +107,6 @@ mData <- mData %>% select(-c('ageGroup'))
 ```
 
 
-2a. Develop rpart Decision Tree Model
 ```{r}
 library(rpart)
 
@@ -137,8 +136,6 @@ summary(rpDT2)
 rpDT1$variable.importance
 
 ```
-
-
 Complexity Parameter Details
 ```{r}
 #Grow a tree, with cp=0
@@ -182,7 +179,6 @@ text(rpDT1_p, use.n=TRUE, all=TRUE, cex=.7)
    # Compare with the unpruned tree -- do you notice how it has been pruned It is still a large tree after prunning. 
 
 ```
-
 Performance on the training data
 ```{r}
 #obtain the predictions from the DT
@@ -203,8 +199,11 @@ mdTst = mData[-trnIndex,]  #test data with the other row-indices
 
 dim(mdTrn) 
 dim(mdTst)
+```
 
 
+2a. Develop rpart Decision Tree Model
+```{r}
 #develop a tree on the training data
 rpDT2=rpart(y ~ ., data=mdTrn, method="class",  control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)) )
 
@@ -261,85 +260,7 @@ mean(predTst==mdTst$y)
 ```
 
 
-Lift curve
-```{r}
-#get the 'scores' from applying the model to the data
-predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
-head(predTrnProb)
 
-#So the two column in predTrnProb gives the predicted prob for 'no' and or 'yes' -- assume 'yes' is the class of #interest. Next we sort the data based on these values, group into say, 10 groups (deciles), and calculate #cumulative response in each group.
-
-
-#Create a data-frame with only the model scores and the actual class  (OUTCOME) values
-trnSc <- mdTrn %>%  select("y")   # selects the OUTCOME column into trnSc
-trnSc$score<-predTrnProb[, 2]  #add a column named 'Score' with prob(default) values in the first column of predTrnProb  (note: first column has index of 1)
-
-#take a look at trnSc
-head(trnSc)
-
-#sort by score
-trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
-
-#we will next generate the cumulative sum of "yes" values of the target -- note that y is a factor variable, so we cannot simply sum these;  
-trnSc$cumResponse<-cumsum(trnSc$y == "yes")
-
-#take a look at the first 10 row in trnSc
-trnSc[1:10,]
-
-#Plot the cumDefault values (y-axis) by numCases (x-axis)
-plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")  #diagonal line
-
-
-
-#On the tst data
-predTstProb=predict(rpDT2_p, mdTst, type='prob')
-tstSc <- mdTst %>%  select("y")
-tstSc$score<-predTstProb[, 2]
-tstSc<-tstSc[order(tstSc$score, decreasing=TRUE),]
-tstSc$cumResponse<-cumsum(tstSc$y == "yes")
-
-plot( tstSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(tstSc$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
-
-```
-Calculate the decile lift table.
-```{r}
-#Divide the data into 10 (for decile lift) equal groups
-trnSc["bucket"]<- ntile(-trnSc[,"score"], 10)  
-     # this creates a new column with group number for each row
-
-#group the data by the 'buckets', and obtain summary statistics 
-dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
-              respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count),
-              lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
-
-#look at the table
-dLifts
-
-
-#you can do various plots, for example
-plot(dLifts$bucket, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
-barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
-
-
-
-#Do the above analyses for the test data
-tstSc["bucket"]<- ntile(-tstSc[,"score"], 10)  
-# this creates a new column with group number for each row
-
-#group the data by the 'buckets', and obtain summary statistics 
-dLifts <- tstSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
-                                                   respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count),
-                                                   lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
-
-#look at the table
-dLifts
-
-
-
-#(there are different packages to give us the lift, etc., but it is useful to be able to do customized calculations)
-```
 ROC curves (using the ROCR package)
 ```{r}
 library('ROCR')
@@ -380,9 +301,7 @@ costPerf = performance(rocPredTst, "cost", cost.fp = 1, cost.fn = 3)
 costPerf@x.values[[1]][which.min(costPerf@y.values[[1]])]
 
 
-#Lift curve
-liftPerf <-performance(rocPredTst, "lift", "rpp")
-plot(liftPerf, main="Lift chart")
+
 
 #Q. are these plots similar to what we obtained earlier from our own calculations
 
