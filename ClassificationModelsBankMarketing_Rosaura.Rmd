@@ -393,15 +393,15 @@ gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.
 
 gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
-gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.125, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
 
-#Test Data
+#Test Data, kept at n=1000 and shrinkage is 0.025
 gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
 
 #Look at the resulting model
-gbm_M1
+summary(gbm_M1)
 
 #variable importance
 summary(gbm_M1)
@@ -409,17 +409,13 @@ summary(gbm_M1)
 
 #plot of cv performance by iterations
 bestIter<-gbm.perf(gbm_M1, method='cv')
-   #bestIter gives the best iteration value, which we can use for obtaining predictions
-   #Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis.
+  
+   #Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis (n=1000, sh=0.025)
+   400 when n=500, sh=0.025
 
 scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
 head(scores_gbmM1)
-     #these are the scores for the '1' class
      
-     #Output--
-     #[1] 0.05912149 0.04164951 0.10254525 0.04322389 0.15613260 0.08583831
-
-#Obtain various performance metrics as earlier
 library('ROCR')
 
 #ROC curve
@@ -427,11 +423,6 @@ pred_gbmM1 <- prediction( scores_gbmM1, mdTrn$y, label.ordering = c("no", "yes")
 rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
 plot(rocPerf_gbmM1)
 abline(a=0, b= 1)
-
-#AUC value
-aucPerf_gbmM1=performance(pred, "auc")
-aucPerf_gbmM1@y.values
-```
 
 
 2e. Develop a Naive Bayes Model
