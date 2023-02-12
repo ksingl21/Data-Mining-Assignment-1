@@ -1,6 +1,6 @@
 ---
   title: "Assignment 1 Classification models - bankData"
-author: "Athena Gonzalez, Rosaura Ocampo,Kapil Singla"
+author: "Athena Gonzalez, Rosaura Ocampo, Kapil Singla"
 
 ---
 
@@ -11,7 +11,7 @@ Loading and Preparing Data
 library(tidyverse)
 
 #read the data, and examine summary statistics
-bankData=read_csv2('bank-full.csv')   #read_csv2 is used since the data has ';' as delimiter
+bankData=read_csv2('bank-full.csv')
 
 #look at the variables 
 glimpse(bankData)
@@ -27,17 +27,283 @@ str(bData)
 
 #calculate the column sums - the number of missing values in each column
 colSums(is.na(bankData))
-#or to get the names of columns in bankData which have missing values
-colnames(bankData)[colSums(is.na(bankData))>0]
+#there are no missing values
 
 #get summary statistics on the variables
 summary(bData)
 ```
 
-Examining Data
+
+Data Exploration
 ```{r}
+
+#proportion of yes,no values in the dependent variable y?
+bData %>% group_by(y) %>% summarize(n())
+#calculate the proportion of examples in each class                                  
+bData %>% group_by(y) %>% summarize(n=n()) %>% mutate(proportion=n/sum(n))
+
+
+#summarize all numeric variables, grouped by dependent(target) variable
+bData %>% group_by(y) %>% summarize_if(is.numeric, mean)
+    #what does this do, and what do you observe
+
+#what about the factor variables - how do they relate to the dependent y?
+bData %>% group_by(job, y) %>% summarize( n=n())
+    #for each type of job, gives the count of yes,no values of y
+#If we then want to see the proportions 
+bData %>% group_by(job, y) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% view() 
+
+#Check what you get with the group_by variables listed in different order
+bData %>% group_by(y, job) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% view()
+    #Notice the difference -- why do you get this difference?  And which output do you find more useful?
+
+
+#Look at other variables
+bData %>% group_by(poutcome, y) %>% tally()
+   #what do you observe?  Might this variable be useful in predicting y?
+
+#Look at the age variable 
+boxplot(bData$age)
+#boxplot
+ggplot(bData, aes(age,  color=y) ) + geom_boxplot()
+#density plot
+ggplot(bData, aes(age,  color=y) ) + geom_density()
+
+#view response by different age ranges - create a ageGroup variable using the cut function
+bData$ageGroup <- cut(bData$age, breaks = c(0, 30, 40, 50, 60, 100))
+
+bData %>% group_by(ageGroup, y) %>% tally()
+bData %>% group_by(ageGroup, y) %>% tally() %>% mutate(propResp=n/sum(n))
+
+#plot the response rate by age group
+tmp <-bData %>% group_by(ageGroup, y) %>% tally() %>% mutate(propResp=n/sum(n)) 
+ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity')
+ #or
+ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity', position = position_dodge())
+
+    #what do you observe? -- higher response in lower age ranges and in 60+ age range?
+
+
+
+
+#Look at duration of calls 
+ggplot(bData, aes(duration,  color=y) ) + geom_boxplot()
+ggplot(bData, aes(duration,  color=y) ) + geom_density()
+    #what do you notice?  - some examples with duration=0 ... maybe exclude these from analyses?
+    #     left-skewed distribution -- most calls are relatively short, and some a overly long 
+
+#Look also at number of calls (campaign)
+summary(bData$campaign)
+ggplot(bData, aes(campaign,  color=y) ) + geom_boxplot()
+  #what do you observe?  - most customers have ben contacted 1-3 times;a few have very ben contacted a very large number times (max 63 !)
+
+#examine duration and number of calls relationship, and by response(y=yes/no)
+ggplot(bData, aes(duration, campaign, color=y))+geom_point()
+   #What do you observe?
+   #   - most responders (y=yes) were contacted less often and had longer duration calls 
+   #   - as number of calls increases beyond around 6-8, fewer customers are likely to respond
 
 ```
 
+
+Predicting Response (y)
+```{r}
+#select variables to be used for developing the predictive model
+mData <- bData %>% select(-c('contact', 'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome'))
+
+#Also remove ageGroup which you created for data exploration
+mData <- mData %>% select(-c('ageGroup'))
+```
+
+
+rpart
+```{r}
+library(rpart)
+
+#develop a rpart decision tree model
+rpDT1 <- rpart(y ~ ., data=mData, method="class")
+
+#print the model -- text form
+print(rpDT1)
+   #what does the model look like??
+
+#to correct for class-imbalance, use the prior parameter
+rpDT2 = rpart(y ~ ., data=mData, method="class", parms=list(prior=c(.5,.5)))
+
+plot(rpDT2, uniform=TRUE,  main="Decision Tree for Bank marketing response")
+text(rpDT2, use.n=TRUE, all=TRUE, cex=.7)
+
+
+#Nicer way to display the tree using the rpart.plot package
+library(rpart.plot)
+
+rpart.plot::prp(rpDT2, type=2, extra=1)
+
+summary(rpDT2)
+  # Q. how do you interpret each line above? 
+  # At any node - what is expected loss, what does the complexity param value indicate? 
+  # Do you understand what the surrogates are, and their role ?
+  # Make sure we understand this output
+
+
+
+#Variable importance as given by a decision tree model
+rpDT1$variable.importance
+   #In class, we covered how the importance values are obtained - we should have a good understanding of this.
+```
+
+
+Complexity Parameter
+```{r}
+#Grow a tree, with cp=0
+rpDT1 = rpart(y ~ ., data=mData, method="class", control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)))
+#Is this a larger tree?
+
+#Tree size and performance for different cp (complexity parameter) values
+printcp(rpDT1)
+ #Cost-complexity parameter for different levels of pruning
+ #    - this shows number of splits in the tree for different values of the  cp 
+ #       parameter, and the cross-validation error
+
+ #Best tree - the more parsimonious (simple) model with cross-validation error (xerror) which is within 1 standard deviation of the minimum xerror
+ 
+#this is indicated by the horizontal line in the cp plot
+plotcp(rpDT1)
+
+
+
+#In the cptable display, you look up the CP value which will be closest to the min_xerror+xstd 
+#      -- this is the best CP value, corresponding to the best pruned tree.  
+#         To get the best tree, we can prune using this CP value.
+
+#Instead of manually looking this up (which is ok for a small cptable, but can be cumbersome for larger cptables)
+#    we can use R to find the best CP value
+
+#Look at the rpDT1 object in the Data-Environment  panel on the right 
+#   -- rpDT1$cptable has the cptable (values displyed by printcp(rpDT1)
+
+mincp_i <- which.min(rpDT1$cptable[, 'xerror'])  #the row (index) corresponding to the min xerror
+
+#The optimal xerror is the min_xError + xstd
+optError <- rpDT1$cptable[mincp_i, "xerror"] + rpDT1$cptable[mincp_i, "xstd"]
+
+#the row(index) of the xerror value which is closest to optError
+optCP_i <- which.min(abs( rpDT1$cptable[,"xerror"] - optError))
+
+#finally, get the best CP value corresponding to optCP_i
+optCP <- rpDT1$cptable[optCP_i, "CP"]
+
+
+#Now we can prune the tree based on this best CP value
+rpDT1_p <- prune(rpDT1, cp = optCP)
+
+#view the plot of the pruned tree
+plot(rpDT1_p, uniform=TRUE,  main="Decision Tree for Bank Marketing")
+text(rpDT1_p, use.n=TRUE, all=TRUE, cex=.7)
+
+   # Compare with the unpruned tree -- do you notice how it has been pruned
+
+```
+
+Performance on the training data
+```{r}
+#obtain the predictions from the DT
+predDT1<-predict(rpDT1_p, mData, type='class')
+
+#confusion matrix using the table command
+table(actuals=bData$y, preds=predDT1)
+```
+
+
+Training and Validation Sets
+```{r}
+#split the data into training and test(validation) sets - 70% for training, rest for validation
+nr=nrow(mData)
+trnIndex = sample(1:nr, size = round(0.7*nr), replace=FALSE) #get a random 70%sample of row-indices
+mdTrn=mData[trnIndex,]   #training data with the randomly selected row-indices
+mdTst = mData[-trnIndex,]  #test data with the other row-indices
+
+dim(mdTrn) 
+dim(mdTst)
+
+
+#develop a tree on the training data
+rpDT2=rpart(y ~ ., data=mdTrn, method="class",  control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)) )
+
+
+#Obtain the model's predictions on the training data
+predTrn=predict(rpDT2, mdTrn, type='class')
+#Confusion table
+table(pred = predTrn, true=mdTrn$y)
+#Accuracy
+mean(predTrn==mdTrn$y)
+
+
+#Obtain the model's predictions on the test data
+ #combining the two steps for ge
+table(pred=predict(rpDT2,mdTst, type="class"), true=mdTst$y)
+
+#Q. What is the accuracy on the test data?
+
+
+
+#As in code above, look at the cptable, find the optimal cp value and prune using the best cp value
+
+mincp_i <- which.min(rpDT2$cptable[, 'xerror'])  #the row (index) corresponding to the min xerror
+
+#The optimal xerror is the min_xError + xstd
+optError <- rpDT2$cptable[mincp_i, "xerror"] + rpDT2$cptable[mincp_i, "xstd"]
+
+#the row(index) of the xerror value which is closest to optError
+optCP_i <- which.min(abs( rpDT2$cptable[,"xerror"] - optError))
+
+#finally, get the best CP value corresponding to optCP_i
+optCP <- rpDT2$cptable[optCP_i, "CP"]
+
+#Now we can prune the tree based on this best CP value
+rpDT2_p <- prune(rpDT2, cp = optCP)
+
+
+#What is the classification performance of the pruned tree on training and test data,
+#   and how does this compare with performance of the unpruned tree
+
+```
+
+
+Develop a GBM Model
+```{r}
+
+#gbm looks for 0,1 values in the dependent variable -- obtained here using unclass()
+gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+
+
+#Look at the resulting model
+gbm_M1
+  #what is the best iteration?  
+
+#variable importance
+summary(gbm_M1)
+
+#plot of cv performance by iterations
+bestIter<-gbm.perf(gbm_M1, method='cv')
+   #bestIter gives the best iteration value, which we can use for obtaining predictions
+
+scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
+head(scores_gbmM1)
+     #these are the scores for the '1' class
+
+#Obtain various performance metrics as earlier
+library('ROCR')
+
+#ROC curve
+pred_gbmM1 <- prediction( scores_gbmM1, mdTrn$y, label.ordering = c("no", "yes"))
+rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
+plot(rocPerf_gbmM1)
+abline(a=0, b= 1)
+
+#AUC value
+aucPerf_gbmM1=performance(pred, "auc")
+aucPerf_gbmM1@y.values
+```
 
 
