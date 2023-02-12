@@ -424,6 +424,22 @@ rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
 plot(rocPerf_gbmM1)
 abline(a=0, b= 1)
 
+#comparing to test data
+ gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+
+summary(gbm_M1)
+ bestIter<-gbm.perf(gbm_M1, method='cv')
+scores_gbmM1<- predict(gbm_M1, newdata = mdTst, n.tree= bestIter, type="response")
+
+head(scores_gbmM1)
+[1] 0.06513680 0.04140867 0.08542534 0.04872887 0.18309469 0.11230618
+
+pred_gbmM1 <- prediction( scores_gbmM1, mdTst$y, label.ordering = c("no", "yes"))
+rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
+plot(rocPerf_gbmM1)
+abline(a=0, b= 1)
+
+
 
 2e. Develop a Naive Bayes Model
 ```{r}
