@@ -3,7 +3,7 @@
 author: "Athena Gonzalez, Rosaura Ocampo, Kapil Singla"
 ---
 
-1a. Loading and Preparing Data
+1a. Data Exploration
 ```{r} 
 
 #load the tidyverse set of libraries - for data manipulations
