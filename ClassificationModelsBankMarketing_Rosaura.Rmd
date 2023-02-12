@@ -70,7 +70,6 @@ ggplot(bData, aes(age,  color=y) ) + geom_density()
 
 #view response by different age ranges - create a ageGroup variable using the cut function
 bData$ageGroup <- cut(bData$age, breaks = c(0, 30, 40, 50, 60, 100))
-
 bData %>% group_by(ageGroup, y) %>% tally()
 bData %>% group_by(ageGroup, y) %>% tally() %>% mutate(propResp=n/sum(n))
 
@@ -80,27 +79,18 @@ ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity')
  #or
 ggplot(tmp, aes(y=propResp, x=ageGroup, fill=y))+geom_bar(stat = 'identity', position = position_dodge())
 
-    #what do you observe? -- higher response in lower age ranges and in 60+ age range?
-
-
 
 
 #Look at duration of calls 
 ggplot(bData, aes(duration,  color=y) ) + geom_boxplot()
 ggplot(bData, aes(duration,  color=y) ) + geom_density()
-    #what do you notice?  - some examples with duration=0 ... maybe exclude these from analyses?
-    #     left-skewed distribution -- most calls are relatively short, and some a overly long 
 
-#Look also at number of calls (campaign)
+#Look also at number of calls
 summary(bData$campaign)
 ggplot(bData, aes(campaign,  color=y) ) + geom_boxplot()
-  #what do you observe?  - most customers have ben contacted 1-3 times;a few have very ben contacted a very large number times (max 63 !)
 
 #examine duration and number of calls relationship, and by response(y=yes/no)
 ggplot(bData, aes(duration, campaign, color=y))+geom_point()
-   #What do you observe?
-   #   - most responders (y=yes) were contacted less often and had longer duration calls 
-   #   - as number of calls increases beyond around 6-8, fewer customers are likely to respond
 
 ```
 
