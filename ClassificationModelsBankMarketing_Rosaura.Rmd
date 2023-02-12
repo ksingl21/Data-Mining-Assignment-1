@@ -535,34 +535,39 @@ aucPerf_gbmM1@y.values
 library(naivebayes)
 
 #Develop a naive bayes model
-nbM1<-naive_bayes(y ~ ., data = mdTrn) 
+nbM1<-naive_bayes(y ~ ., data = mdTrn)
 plot(nbM1)
+summary(nbM1)
 
-#Obtain predictions
-nbPred1 = predict(nbM1, mdTrn, type='prob')
+nbPred1Trn = predict(nbM1, mdTrn, type='prob')
 
-#attempting various thresholds
-THRESH1=0.2
-table(pred=nbPred1[, 2] > THRESH1, actual=mdTrn$y)
-THRESH2=0.5
-table(pred=nbPred1[, 2] > THRESH2, actual=mdTrn$y)
-THRESH3=0.8
-table(pred=nbPred1[, 2] > THRESH3, actual=mdTrn$y)
-
-#ROC curve for nbM1
-pred_nbM1=prediction(nbPred1[,2], mdTrn$y)
-rocPerf_nbM1 <- performance(pred_nbM1, "tpr","fpr")
-plot(rocPerf_nbM1)
+#ROC curve for nbM1 trn
+pred_nbM1Trn = prediction(nbPred1Trn[,2], mdTrn$y)
+perf_nbM1Trn <- performance(pred_nbM1Trn, "tpr","fpr")
+plot(perf_nbM1Trn)
 abline(a=0, b= 1)
 
-#Lift Curve for nbM1
-trnSc_nbM1 <- mdTrn %>%  select("y")   # selects the OUTCOME column into trnSc
-trnSc_nbM1$score<-nbPred1[, 2]
-trnSc_nbM1<-trnSc_nbM1[order(trnSc_nbM1$score, decreasing=TRUE),]
-trnSc_nbM1$cumResponse<-cumsum(trnSc_nbM1$y == "yes")
+#Lift Curve for nbM1 trn
+sc_nbM1Trn <- mdTrn %>%  select("y")
+sc_nbM1Trn$score <- nbPred1Trn[, 2]
+sc_nbM1Trn <- sc_nbM1Trn[order(sc_nbM1Trn$score, decreasing=TRUE),]
+sc_nbM1Trn$cumResponse<-cumsum(sc_nbM1Trn$y == "yes")
+plot(sc_nbM1Trn$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(sc_nbM1Trn$cumResponse)/nrow(sc_nbM1Trn), col="blue")  #diagonal line
 
-plot( trnSc_nbM1$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(trnSc_nbM1$cumResponse)/nrow(trnSc_nbM1), col="blue")  #diagonal line
+nbPred1Tst = predict(nbM1, mdTst, type='prob')
+
+#Lift Curve for nbM1 tst
+predTstProb=predict(nbM1, mdTst, type='prob')
+sc_nbM1Tst <- mdTst %>%  select("y")
+sc_nbM1Tst$score <- nbPred1Tst[, 2]
+sc_nbM1Tst<-sc_nbM1Tst[order(sc_nbM1Tst$score, decreasing=TRUE),]
+sc_nbM1Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
+
+plot(sc_nbM1Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(sc_nbM1Tst$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
+
+
 
 #Develop a naive-Bayes model with kernel density estimation
 nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
@@ -575,18 +580,13 @@ rocPerf_nbM2 <- performance(pred_nbM2, "tpr","fpr")
 plot(rocPerf_nbM2)
 abline(a=0, b= 1)
 
-
-
-#On the mdTst data
-predTstProb=predict(nbM1, mdTst, type='prob')
-tstSc <- mdTst %>%  select("y")
-tstSc$score<-predTstProb[, 2]
-tstSc<-tstSc[order(tstSc$score, decreasing=TRUE),]
-tstSc$cumResponse<-cumsum(tstSc$y == "yes")
-
-plot( tstSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(tstSc$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
-
+#attempting various thresholds
+THRESH1=0.2
+table(pred=nbPred1Trn[, 2] > THRESH1, actual=mdTrn$y)
+THRESH2=0.5
+table(pred=nbPred1Trn[, 2] > THRESH2, actual=mdTrn$y)
+THRESH3=0.8
+table(pred=nbPred1Trn[, 2] > THRESH3, actual=mdTrn$y)
 
 ```
 
