@@ -313,8 +313,45 @@ library(C50)
 #build a tree model
 c5DT1 <- C5.0(y ~ ., data=mdTrn, control=C5.0Control(minCases=10))
 
-#model details
-summary(c5DT1)
+#performance without Cost parameter in the model.
+ #performance on Training Data
+predTrn <- predict(c5DT1, mdTrn)
+table( pred = predTrn, true=mdTrn$y)
+mean(predTrn==mdTrn$y)
+
+#performance on Test Data
+predTst <- predict(c5DT1, mdTst)
+table( pred = predTst, true=mdTst$y)
+mean(predTst==mdTst$y)
+
+#variable importance
+C5imp(c5DT1)
+
+#Can try to use costs to try overcome class imbalance in data
+costMatrix <- matrix(c(
+    0,   1,
+    10,  0),
+   2, 2, byrow=TRUE)
+rownames(costMatrix) <- colnames(costMatrix) <- c("yes", "no")
+
+#Adding Cost parameter to model to calculate performance.
+c5DT1 <- C5.0(y ~ ., data=mdTrn, control=C5.0Control(minCases=10), costs=costMatrix)
+
+#performance on Training Data
+predTrn <- predict(c5DT1, mdTrn)
+table( pred = predTrn, true=mdTrn$y)
+mean(predTrn==mdTrn$y)
+
+#performance on Test Data
+predTst <- predict(c5DT1, mdTst)
+table( pred = predTst, true=mdTst$y)
+mean(predTst==mdTst$y)
+
+
+#variable importance
+C5imp(c5DT1)
+
+
 ```
 
 
