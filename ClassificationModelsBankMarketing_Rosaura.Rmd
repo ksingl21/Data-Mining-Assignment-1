@@ -114,7 +114,7 @@ rpDT1 <- rpart(y ~ ., data=mData, method="class")
 
 #print the model -- text form
 print(rpDT1)
-   #what does the model look like??
+   #what does the model look like?? It does not have any branches.
 
 #to correct for class-imbalance, use the prior parameter
 rpDT2 = rpart(y ~ ., data=mData, method="class", parms=list(prior=c(.5,.5)))
@@ -126,19 +126,15 @@ text(rpDT2, use.n=TRUE, all=TRUE, cex=.7)
 #Nicer way to display the tree using the rpart.plot package
 library(rpart.plot)
 
-rpart.plot::prp(rpDT2, type=2, extra=1)
+rpart.plot::prp(rpDT2, type=2, extra=1) #Tree is created with branches
 
 summary(rpDT2)
-  # Q. how do you interpret each line above? 
-  # At any node - what is expected loss, what does the complexity param value indicate? 
-  # Do you understand what the surrogates are, and their role ?
-  # Make sure we understand this output
 
 
 
 #Variable importance as given by a decision tree model
 rpDT1$variable.importance
-   #In class, we covered how the importance values are obtained - we should have a good understanding of this.
+
 ```
 
 
@@ -146,7 +142,7 @@ Complexity Parameter
 ```{r}
 #Grow a tree, with cp=0
 rpDT1 = rpart(y ~ ., data=mData, method="class", control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)))
-#Is this a larger tree?
+#Is this a larger tree? It is a large tree.
 
 #Tree size and performance for different cp (complexity parameter) values
 printcp(rpDT1)
@@ -154,8 +150,7 @@ printcp(rpDT1)
  #    - this shows number of splits in the tree for different values of the  cp 
  #       parameter, and the cross-validation error
 
- #Best tree - the more parsimonious (simple) model with cross-validation error (xerror) which is within 1 standard deviation of the minimum xerror
- 
+#Best tree - the more parsimonious (simple) model with cross-validation error (xerror) which is within 1 standard deviation of the minimum xerror
 #this is indicated by the horizontal line in the cp plot
 plotcp(rpDT1)
 
@@ -165,11 +160,6 @@ plotcp(rpDT1)
 #      -- this is the best CP value, corresponding to the best pruned tree.  
 #         To get the best tree, we can prune using this CP value.
 
-#Instead of manually looking this up (which is ok for a small cptable, but can be cumbersome for larger cptables)
-#    we can use R to find the best CP value
-
-#Look at the rpDT1 object in the Data-Environment  panel on the right 
-#   -- rpDT1$cptable has the cptable (values displyed by printcp(rpDT1)
 
 mincp_i <- which.min(rpDT1$cptable[, 'xerror'])  #the row (index) corresponding to the min xerror
 
@@ -190,7 +180,7 @@ rpDT1_p <- prune(rpDT1, cp = optCP)
 plot(rpDT1_p, uniform=TRUE,  main="Decision Tree for Bank Marketing")
 text(rpDT1_p, use.n=TRUE, all=TRUE, cex=.7)
 
-   # Compare with the unpruned tree -- do you notice how it has been pruned
+   # Compare with the unpruned tree -- do you notice how it has been pruned It is still a large tree after prunning. 
 
 ```
 
@@ -227,13 +217,12 @@ table(pred = predTrn, true=mdTrn$y)
 #Accuracy
 mean(predTrn==mdTrn$y)
 
-
 #Obtain the model's predictions on the test data
- #combining the two steps for ge
-table(pred=predict(rpDT2,mdTst, type="class"), true=mdTst$y)
-
-#Q. What is the accuracy on the test data?
-
+predTst=predict(rpDT2, mdTst, type='class')
+#Confusion table
+table(pred = predTst, true=mdTst$y)
+#Accuracy
+mean(predTst==mdTst$y)
 
 
 #As in code above, look at the cptable, find the optimal cp value and prune using the best cp value
@@ -255,6 +244,20 @@ rpDT2_p <- prune(rpDT2, cp = optCP)
 
 #What is the classification performance of the pruned tree on training and test data,
 #   and how does this compare with performance of the unpruned tree
+
+#Obtain the model's predictions on the training data
+predTrn=predict(rpDT2_p, mdTrn, type='class')
+#Confusion table
+table(pred = predTrn, true=mdTrn$y)
+#Accuracy
+mean(predTrn==mdTrn$y)
+
+#Obtain the model's predictions on the test data
+predTst=predict(rpDT2_p, mdTst, type='class')
+#Confusion table
+table(pred = predTst, true=mdTst$y)
+#Accuracy
+mean(predTst==mdTst$y)
 
 ```
 
