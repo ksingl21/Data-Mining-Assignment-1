@@ -191,9 +191,9 @@ table(actuals=bData$y, preds=predDT1)
 
 Training and Validation Sets
 ```{r}
-#split the data into training and test(validation) sets - 70% for training, rest for validation
+#Splitting the data into training and test(validation) sets - 70% for training, 30% for validation
 nr=nrow(mData)
-trnIndex = sample(1:nr, size = round(0.7*nr), replace=FALSE) #get a random 70%sample of row-indices
+trnIndex = sample(1:nr, size = round(0.7*nr), replace=FALSE) #randomly choosing 70% of row-indices
 mdTrn=mData[trnIndex,]   #training data with the randomly selected row-indices
 mdTst = mData[-trnIndex,]  #test data with the other row-indices
 
