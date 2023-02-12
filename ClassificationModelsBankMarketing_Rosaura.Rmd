@@ -3,7 +3,7 @@
 author: "Athena Gonzalez, Rosaura Ocampo, Kapil Singla"
 ---
 
-Loading and Preparing Data
+1a. Loading and Preparing Data
 ```{r} 
 
 #load the tidyverse set of libraries - for data manipulations
@@ -33,9 +33,8 @@ summary(bData)
 ```
 
 
-Data Exploration
+1b. Data Exploration
 ```{r}
-
 #proportion of yes,no values in the dependent variable y?
 bData %>% group_by(y) %>% summarize(n())
 #calculate the proportion of examples in each class                                  
@@ -56,11 +55,14 @@ bData %>% group_by(job, y) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% v
 bData %>% group_by(y, job) %>% summarize( n=n()) %>% mutate(freq=n/sum(n)) %>% view()
     #Notice the difference -- why do you get this difference?  And which output do you find more useful?
 
-
 #Look at other variables
 bData %>% group_by(poutcome, y) %>% tally()
    #what do you observe?  Might this variable be useful in predicting y?
+```
 
+
+1c. Data Exploration
+```{r}
 #Look at the age variable 
 boxplot(bData$age)
 #boxplot
@@ -95,7 +97,7 @@ ggplot(bData, aes(duration, campaign, color=y))+geom_point()
 ```
 
 
-Predicting Response (y)
+Selecting Data for Developing Predicitve Models
 ```{r}
 #select variables to be used for developing the predictive model
 mData <- bData %>% select(-c('contact', 'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome'))
@@ -105,7 +107,7 @@ mData <- mData %>% select(-c('ageGroup'))
 ```
 
 
-rpart
+2a. Develop rpart Decision Tree Model
 ```{r}
 library(rpart)
 
@@ -119,18 +121,17 @@ print(rpDT1)
 #to correct for class-imbalance, use the prior parameter
 rpDT2 = rpart(y ~ ., data=mData, method="class", parms=list(prior=c(.5,.5)))
 
+#Display/Plot
 plot(rpDT2, uniform=TRUE,  main="Decision Tree for Bank marketing response")
 text(rpDT2, use.n=TRUE, all=TRUE, cex=.7)
 
 
 #Nicer way to display the tree using the rpart.plot package
 library(rpart.plot)
-
 rpart.plot::prp(rpDT2, type=2, extra=1) #Tree is created with branches
 
+#Details on DT 
 summary(rpDT2)
-
-
 
 #Variable importance as given by a decision tree model
 rpDT1$variable.importance
@@ -138,7 +139,7 @@ rpDT1$variable.importance
 ```
 
 
-Complexity Parameter
+Complexity Parameter Details
 ```{r}
 #Grow a tree, with cp=0
 rpDT1 = rpart(y ~ ., data=mData, method="class", control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)))
@@ -258,6 +259,138 @@ table(pred = predTst, true=mdTst$y)
 mean(predTst==mdTst$y)
 
 ```
+
+
+Lift curve
+```{r}
+#get the 'scores' from applying the model to the data
+predTrnProb=predict(rpDT2_p, mdTrn, type='prob')
+head(predTrnProb)
+
+#So the two column in predTrnProb gives the predicted prob for 'no' and or 'yes' -- assume 'yes' is the class of #interest. Next we sort the data based on these values, group into say, 10 groups (deciles), and calculate #cumulative response in each group.
+
+
+#Create a data-frame with only the model scores and the actual class  (OUTCOME) values
+trnSc <- mdTrn %>%  select("y")   # selects the OUTCOME column into trnSc
+trnSc$score<-predTrnProb[, 2]  #add a column named 'Score' with prob(default) values in the first column of predTrnProb  (note: first column has index of 1)
+
+#take a look at trnSc
+head(trnSc)
+
+#sort by score
+trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
+
+#we will next generate the cumulative sum of "yes" values of the target -- note that y is a factor variable, so we cannot simply sum these;  
+trnSc$cumResponse<-cumsum(trnSc$y == "yes")
+
+#take a look at the first 10 row in trnSc
+trnSc[1:10,]
+
+#Plot the cumDefault values (y-axis) by numCases (x-axis)
+plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")  #diagonal line
+
+
+
+#On the tst data
+predTstProb=predict(rpDT2_p, mdTst, type='prob')
+tstSc <- mdTst %>%  select("y")
+tstSc$score<-predTstProb[, 2]
+tstSc<-tstSc[order(tstSc$score, decreasing=TRUE),]
+tstSc$cumResponse<-cumsum(tstSc$y == "yes")
+
+plot( tstSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(tstSc$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
+
+```
+Calculate the decile lift table.
+```{r}
+#Divide the data into 10 (for decile lift) equal groups
+trnSc["bucket"]<- ntile(-trnSc[,"score"], 10)  
+     # this creates a new column with group number for each row
+
+#group the data by the 'buckets', and obtain summary statistics 
+dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
+              respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count),
+              lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
+
+#look at the table
+dLifts
+
+
+#you can do various plots, for example
+plot(dLifts$bucket, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
+barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
+
+
+
+#Do the above analyses for the test data
+tstSc["bucket"]<- ntile(-tstSc[,"score"], 10)  
+# this creates a new column with group number for each row
+
+#group the data by the 'buckets', and obtain summary statistics 
+dLifts <- tstSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
+                                                   respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count),
+                                                   lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
+
+#look at the table
+dLifts
+
+
+
+#(there are different packages to give us the lift, etc., but it is useful to be able to do customized calculations)
+```
+ROC curves (using the ROCR package)
+```{r}
+library('ROCR')
+
+#obtain the scores from the model for the class of interest, here, the prob('default')
+scoreTst=predict(rpDT2_p, mdTst, type="prob")[,'yes']  
+   #same as predProbTst
+
+#now apply the prediction function from ROCR to get a prediction object
+rocPredTst = prediction(scoreTst, mdTst$y, label.ordering = c('no', 'yes'))  
+
+#obtain performance using the function from ROCR, then plot
+perfROCTst=performance(rocPredTst, "tpr", "fpr")
+plot(perfROCTst)
+abline(0,1)
+
+
+#How does this compare with the training data?
+
+```
+Other performance from ROCR
+```{r}
+
+#AUC value
+aucPerf=performance(rocPredTst, "auc")
+aucPerf@y.values
+
+#Accuracy 
+accPerf <-performance(rocPredTst, "acc")
+plot(accPerf)
+
+ #optimal threshold for max overall accuracy
+accPerf@x.values[[1]][which.max(accPerf@y.values[[1]])]
+
+
+#optimal cost with different costs for fp and fn
+costPerf = performance(rocPredTst, "cost", cost.fp = 1, cost.fn = 3)
+costPerf@x.values[[1]][which.min(costPerf@y.values[[1]])]
+
+
+#Lift curve
+liftPerf <-performance(rocPredTst, "lift", "rpp")
+plot(liftPerf, main="Lift chart")
+
+#Q. are these plots similar to what we obtained earlier from our own calculations
+
+```
+
+
+2b. Develop C50 Decision Tree and Rules
+```{r}
 #Develop C5.0 Model
 library(C50)
 
@@ -266,9 +399,10 @@ c5DT1 <- C5.0(y ~ ., data=mdTrn, control=C5.0Control(minCases=10))
 
 #model details
 summary(c5DT1)
+```
 
-#--------------
-Random forest model
+
+2c. Develop a Random Forest Model
 ```{r}
 library('randomForest')
 set.seed(576)
@@ -331,9 +465,10 @@ mean(pred==mdTst$y)
 #Roc Curve
 perf_rfTst=performance(prediction(predict(rfModel,mdTst, type="prob")[,2], mdTst$y), "tpr", "fpr")
 plot(perf_rfTst)
+```
 
 
-Develop a GBM Model
+2d. Develop a GBM Model
 ```{r}
 library(gbm)
 
@@ -351,14 +486,14 @@ summary(gbm_M1)
 #plot of cv performance by iterations
 bestIter<-gbm.perf(gbm_M1, method='cv')
    #bestIter gives the best iteration value, which we can use for obtaining predictions
-   Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis.
+   #Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis.
 
 scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
 head(scores_gbmM1)
      #these are the scores for the '1' class
      
-     Output--
-     [1] 0.05912149 0.04164951 0.10254525 0.04322389 0.15613260 0.08583831
+     #Output--
+     #[1] 0.05912149 0.04164951 0.10254525 0.04322389 0.15613260 0.08583831
 
 #Obtain various performance metrics as earlier
 library('ROCR')
@@ -374,4 +509,71 @@ aucPerf_gbmM1=performance(pred, "auc")
 aucPerf_gbmM1@y.values
 ```
 
+
+2e. Develop a Naive Bayes Model
+```{r}
+library(naivebayes)
+
+nbM1<-naive_bayes(y ~ ., data = mdTrn) 
+
+nbM1
+plot(nbM1)
+
+#Obtain predictions
+nbPred = predict(nbM1, mdTrn, type='prob')
+head(nbPred)
+   #so the second column of values gives the prob for "yes" ?
+
+THRESH=0.5
+table(pred=nbPred[, 2] > THRESH, actual=mdTrn$y)
+  
+#Try other thresholds
+#Draw the ROC curve a before
+
+
+#Develop a naive-Bayes model with useKernel=True  (what does this do?)
+nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
+
+plot(nbM2)
+
+#Evaluate performance
+```
+
+
+2f. Compare Performance of Different Models Developed
+```{r}
+#rpart DT model
+dtrPred <- predict(rpDT2_p, mdTst, type="prob")[,'yes']  
+dtrROCPred <- prediction( dtrPred, mdTst$y, label.ordering = c("no", "yes") )
+dtrPerfROC <- performance(dtrROCPred, "tpr", "fpr")
+plot(dtrPerfROC, add=TRUE, col='blue') 
+
+#random forest model
+rfPred <-predict(rfModel,mdTst, type="prob")[, 'yes']
+rfROCPred <- prediction( rfPred, mdTst$y, label.ordering = c("no", "yes") )
+rfPerfROC <- performance(rfROCPred, "tpr", "fpr")
+plot(rfPerfROC, add=TRUE, col='green') 
+
+#gbm model
+gbmPred <- predict(gbm_M1, newdata = mdTst, n.tree= bestIter, type="response")
+gbmROCPred <- prediction( gbmPred, mdTst$y, label.ordering = c("no", "yes") )
+gbmPerfROC <- performance(gbmROCPred, "tpr", "fpr")
+plot(gbmPerfROC, add=TRUE, col='red')
+
+#naive-Bayes model
+nbPred <- predict(nbM1, mdTst, type='prob')[, "yes"]
+nbROCPred <- prediction( nbPred, mdTst$y, label.ordering = c("no", "yes") )
+nbPerfROC <- performance(nbROCPred, "tpr", "fpr")
+plot(nbPerfROC, col='black') 
+
+#Add legend
+legend('bottomright', c('nB', 'rpartDT', 'rf', 'gbm'), lty=1, col=c('black', 'blue', 'green', 'red'))
+abline(0,1)  #add the diagonal reference line
+
+
+
+#What do ROC curves on the training data look like ?
+# Do some models exhibit greater overfit to the training data?
+
+```
 
