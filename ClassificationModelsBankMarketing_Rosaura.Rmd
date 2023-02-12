@@ -432,12 +432,13 @@ summary(gbm_M1)
 scores_gbmM1<- predict(gbm_M1, newdata = mdTst, n.tree= bestIter, type="response")
 
 head(scores_gbmM1)
-[1] 0.06513680 0.04140867 0.08542534 0.04872887 0.18309469 0.11230618
+#[1] 0.06513680 0.04140867 0.08542534 0.04872887 0.18309469 0.11230618
 
 pred_gbmM1 <- prediction( scores_gbmM1, mdTst$y, label.ordering = c("no", "yes"))
 rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
 plot(rocPerf_gbmM1)
 abline(a=0, b= 1)
+```
 
 
 
