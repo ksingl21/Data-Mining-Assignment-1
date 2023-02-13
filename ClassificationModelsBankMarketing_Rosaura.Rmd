@@ -535,12 +535,20 @@ aucPerf_gbmM1@y.values
 ```{r}
 library(naivebayes)
 
-#Develop a naive bayes model
+# Develop a naive bayes model --------------------------------------------------
 nbM1<-naive_bayes(y ~ ., data = mdTrn)
 plot(nbM1)
 summary(nbM1)
 
 nbPred1Trn = predict(nbM1, mdTrn, type='prob')
+
+#attempting various thresholds
+THRESH1=0.2
+table(pred=nbPred1Trn[, 2] > THRESH1, actual=mdTrn$y)
+THRESH2=0.5
+table(pred=nbPred1Trn[, 2] > THRESH2, actual=mdTrn$y)
+THRESH3=0.8
+table(pred=nbPred1Trn[, 2] > THRESH3, actual=mdTrn$y)
 
 #ROC curve for nbM1 trn
 pred_nbM1Trn = prediction(nbPred1Trn[,2], mdTrn$y)
@@ -582,30 +590,62 @@ sc_nbM1Tst<-sc_nbM1Tst[order(sc_nbM1Tst$score, decreasing=TRUE),]
 sc_nbM1Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
 
 plot(sc_nbM1Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(sc_nbM1Tst$cumResponse)/nrow(tstSc), col="blue")  #diagonal line
+abline(0,max(sc_nbM1Tst$cumResponse)/nrow(sc_nbM1Tst), col="blue")  #diagonal line
 
 
-
-#Develop a naive-Bayes model with kernel density estimation
+# Develop a naive bayes model with KDE -----------------------------------------
 nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
 plot(nbM2)
+summary(nbM2)
 
-#ROC curve for nbM2
-nbPred2 = predict(nbM2, mdTrn, type='prob')
-pred_nbM2=prediction(nbPred2[,2], mdTrn$y)
-rocPerf_nbM2 <- performance(pred_nbM2, "tpr","fpr")
-plot(rocPerf_nbM2)
+nbPred2Trn = predict(nbM2, mdTrn, type='prob')
+
+#ROC curve for nbM2 trn
+pred_nbM2Trn = prediction(nbPred2Trn[,2], mdTrn$y)
+perf_nbM2Trn <- performance(pred_nbM2Trn, "tpr","fpr")
+plot(perf_nbM2Trn)
 abline(a=0, b= 1)
 
-#attempting various thresholds
-THRESH1=0.2
-table(pred=nbPred1Trn[, 2] > THRESH1, actual=mdTrn$y)
-THRESH2=0.5
-table(pred=nbPred1Trn[, 2] > THRESH2, actual=mdTrn$y)
-THRESH3=0.8
-table(pred=nbPred1Trn[, 2] > THRESH3, actual=mdTrn$y)
+#AUC
+aucPerfnbM2 <- performance(pred_nbM2Trn , "auc")
+aucPerf@y.values
+
+#Accuracy 
+accPerfnbM2 <- performance(pred_nbM2Trn, "acc")
+plot(accPerf)
+
+#optimal threshold for max overall accuracy
+accPerfnbM2@x.values[[1]][which.max(accPerfnbM2@y.values[[1]])]
+
+
+#optimal cost with different costs for fp and fn
+costPerfnbM2 = performance(pred_nbM2Trn, "cost", cost.fp = 1, cost.fn = 3)
+costPerfnbM2@x.values[[1]][which.min(costPerfnbM2@y.values[[1]])]
+
+#Lift Curve for nbM2 trn
+sc_nbM2Trn <- mdTrn %>%  select("y")
+sc_nbM2Trn$score <- nbPred2Trn[, 2]
+sc_nbM2Trn <- sc_nbM2Trn[order(sc_nbM2Trn$score, decreasing=TRUE),]
+sc_nbM2Trn$cumResponse<-cumsum(sc_nbM2Trn$y == "yes")
+plot(sc_nbM2Trn$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(sc_nbM2Trn$cumResponse)/nrow(sc_nbM2Trn), col="blue")  #diagonal line
+
+nbPred2Tst = predict(nbM2, mdTst, type='prob')
+
+#Lift Curve for nbM2 tst
+predTstProb=predict(nbM2, mdTst, type='prob')
+sc_nbM2Tst <- mdTst %>%  select("y")
+sc_nbM2Tst$score <- nbPred1Tst[, 2]
+sc_nbM2Tst<-sc_nbM1Tst[order(sc_nbM1Tst$score, decreasing=TRUE),]
+sc_nbM2Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
+
+plot(sc_nbM2Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
+abline(0,max(sc_nbM2Tst$cumResponse)/nrow(sc_nbM2Tst), col="blue")  #diagonal line
+
 
 ```
+
+
 
 
 2f. Compare Performance of Different Models Developed
