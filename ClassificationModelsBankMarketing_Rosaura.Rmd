@@ -579,3 +579,18 @@ plot(rfaccPerf,add=TRUE,col='Green')
 #Add legend
 legend('bottomright', c('c5', 'rpart', 'rf', 'gbm'), lty=1, col=c('Red', 'blue', 'green', 'Orange'))
 abline(0,1)  #add the diagonal reference line
+
+#AUC value
+rpaccPerf <-performance(dtrROCPred, "acc")
+rpaccPerf@y.values
+#c5 perfoamce
+c5accPerf <-performance(c5ROCPred, "acc")
+c5accPerf@y.values
+#gbm perfoamce
+gbmaccPerf <-performance(gbmROCPred , "acc")
+gbmaccPerf@y.values
+#RF perfoamce
+rfaccPerf <-performance(rfROCPred, "acc")
+rfaccPerf@y.values
+
+
