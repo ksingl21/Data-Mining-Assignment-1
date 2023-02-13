@@ -414,35 +414,7 @@ table(pred=nbPred1Trn[, 2] > THRESH2, actual=mdTrn$y)
 THRESH3=0.8
 table(pred=nbPred1Trn[, 2] > THRESH3, actual=mdTrn$y)
 
-
-#performance on Training Data
-nbPred1Trn = predict(nbM1, mdTrn)
-table( nbPred1Trn = nbPred1Trn, true=mdTrn$y)
-mean(nbPred1Trn==mdTrn$y)
-
-#performance on Test Data
-nbPred1Tst = predict(nbM1, mdTst)
-table( nbPred1Tst = nbPred1Tst, true=mdTst$y)
-mean(nbPred1Tst==mdTst$y)
-
-# Develop a naive bayes model with KDE -----------------------------------------
-nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
-plot(nbM2)
-summary(nbM2)
-
-#performance on Training Data
-nbPred2Trn = predict(nbM2, mdTrn)
-table( nbPred2Trn = nbPred2Trn, true=mdTrn$y)
-mean(nbPred2Trn==mdTrn$y)
-
-#performance on Test Data
-nbPred2Tst = predict(nbM2, mdTst)
-table( nbPred2Tst = nbPred2Tst, true=mdTst$y)
-mean(nbPred2Tst==mdTst$y)
-
-```
-
-```{r}
+library('ROCR')
 #ROC curve for nbM1 trn
 pred_nbM1Trn = prediction(nbPred1Trn[,2], mdTrn$y)
 perf_nbM1Trn <- performance(pred_nbM1Trn, "tpr","fpr")
@@ -451,11 +423,11 @@ abline(a=0, b= 1)
 
 #AUC
 aucPerfnbM1 <- performance(pred_nbM1Trn , "auc")
-aucPerf@y.values
+aucPerfnbM1@y.values
 
 #Accuracy 
 accPerfnbM1 <- performance(pred_nbM1Trn, "acc")
-plot(accPerf)
+plot(accPerfnbM1)
 
 #optimal threshold for max overall accuracy
 accPerfnbM1@x.values[[1]][which.max(accPerfnbM1@y.values[[1]])]
@@ -485,7 +457,23 @@ sc_nbM1Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
 plot(sc_nbM1Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
 abline(0,max(sc_nbM1Tst$cumResponse)/nrow(sc_nbM1Tst), col="blue")  #diagonal line
 
-----------------------------------------------------------------------------------
+#performance on Training Data
+nbPred1Trn = predict(nbM1, mdTrn)
+table( nbPred1Trn = nbPred1Trn, true=mdTrn$y)
+mean(nbPred1Trn==mdTrn$y)
+
+#performance on Test Data
+nbPred1Tst = predict(nbM1, mdTst)
+table( nbPred1Tst = nbPred1Tst, true=mdTst$y)
+mean(nbPred1Tst==mdTst$y)
+
+# Develop a naive bayes model with KDE -----------------------------------------
+nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
+plot(nbM2)
+summary(nbM2)
+
+nbPred2Trn = predict(nbM2, mdTrn, type='prob')
+
 #ROC curve for nbM2 trn
 pred_nbM2Trn = prediction(nbPred2Trn[,2], mdTrn$y)
 perf_nbM2Trn <- performance(pred_nbM2Trn, "tpr","fpr")
@@ -494,11 +482,11 @@ abline(a=0, b= 1)
 
 #AUC
 aucPerfnbM2 <- performance(pred_nbM2Trn , "auc")
-aucPerf@y.values
+aucPerfnbM2@y.values
 
 #Accuracy 
 accPerfnbM2 <- performance(pred_nbM2Trn, "acc")
-plot(accPerf)
+plot(accPerfnbM2)
 
 #optimal threshold for max overall accuracy
 accPerfnbM2@x.values[[1]][which.max(accPerfnbM2@y.values[[1]])]
@@ -528,6 +516,15 @@ sc_nbM2Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
 plot(sc_nbM2Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
 abline(0,max(sc_nbM2Tst$cumResponse)/nrow(sc_nbM2Tst), col="blue")  #diagonal line
 
+#performance on Training Data
+nbPred2Trn = predict(nbM2, mdTrn)
+table( nbPred2Trn = nbPred2Trn, true=mdTrn$y)
+mean(nbPred2Trn==mdTrn$y)
+
+#performance on Test Data
+nbPred2Tst = predict(nbM2, mdTst)
+table( nbPred2Tst = nbPred2Tst, true=mdTst$y)
+mean(nbPred2Tst==mdTst$y)
 
 ```
 
