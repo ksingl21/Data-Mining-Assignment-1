@@ -453,23 +453,22 @@ barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
 library(gbm)
 
 #gbm looks for 0,1 values in the dependent variable -- obtained here using unclass()
-gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+gbm_M1_1000_0.025 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
-gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+#Determine best iteration
+bestIter_1000_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
 
-gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.125, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+#Variable Importance
+summary(gbm_M1_1000_0.025)
 
+gbm_M1Trn<- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
+head(scores_gbmM1)
 
 #Test Data, kept at n=1000 and shrinkage is 0.025
-gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+gbm_M1Tst <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
 
 
-#Look at the resulting model
-summary(gbm_M1)
 
-#variable importance
-summary(gbm_M1)
-#variables of importance include age, balance, job, housing, education, loan, marital, and default. All listed in decreasing order ot importance and rel. inf values.
 
 #plot of cv performance by iterations
 bestIter<-gbm.perf(gbm_M1, method='cv')
@@ -526,9 +525,6 @@ rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
 plot(rocPerf_gbmM1)
 abline(a=0, b= 1)
 ```
-
-aucPerf_gbmM1=performance(pred, "auc")
-aucPerf_gbmM1@y.values
 
 
 2e. Develop a Naive Bayes Model
@@ -668,7 +664,7 @@ gbmROCPred <- prediction( gbmPred, mdTst$y, label.ordering = c("no", "yes") )
 gbmPerfROC <- performance(gbmROCPred, "tpr", "fpr")
 plot(gbmPerfROC, add=TRUE, col='red')
 
-#naive-Bayes model
+#naive-Bayes model - choosing nbm2
 nbPred <- predict(nbM1, mdTst, type='prob')[, "yes"]
 nbROCPred <- prediction( nbPred, mdTst$y, label.ordering = c("no", "yes") )
 nbPerfROC <- performance(nbROCPred, "tpr", "fpr")
