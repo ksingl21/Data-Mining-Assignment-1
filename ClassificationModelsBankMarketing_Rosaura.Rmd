@@ -472,7 +472,7 @@ bestIter_500_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
 #Variable Importance
 summary(gbm_M1_1000_0.025)
 
-gbm_M1Trn<- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
+gbm_M1Trn <- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
 head(scores_gbmM1)
 
      
