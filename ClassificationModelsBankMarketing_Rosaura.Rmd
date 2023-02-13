@@ -108,6 +108,24 @@ mData <- mData %>% select(-c('ageRanges'))
 
 
 ```{r}
+
+
+
+Training and Validation Sets
+```{r}
+#Splitting the data into training and test(validation) sets - 70% for training, 30% for validation
+nr=nrow(mData)
+trnIndex = sample(1:nr, size = round(0.7*nr), replace=FALSE) #randomly choosing 70% of row-indices
+mdTrn=mData[trnIndex,]   #training data with the randomly selected row-indices
+mdTst = mData[-trnIndex,]  #test data with the other row-indices
+
+dim(mdTrn) 
+dim(mdTst)
+```
+
+
+2a. Develop rpart Decision Tree Model
+```{r}
 library(rpart)
 
 #develop a rpart decision tree model
@@ -144,12 +162,8 @@ rpDT1 = rpart(y ~ ., data=mData, method="class", control = rpart.control(cp = 0.
 
 #Tree size and performance for different cp (complexity parameter) values
 printcp(rpDT1)
- #Cost-complexity parameter for different levels of pruning
- #    - this shows number of splits in the tree for different values of the  cp 
- #       parameter, and the cross-validation error
+ 
 
-#Best tree - the more parsimonious (simple) model with cross-validation error (xerror) which is within 1 standard deviation of the minimum xerror
-#this is indicated by the horizontal line in the cp plot
 plotcp(rpDT1)
 
 
@@ -176,7 +190,7 @@ rpDT1_p <- prune(rpDT1, cp = optCP)
 plot(rpDT1_p, uniform=TRUE,  main="Decision Tree for Bank Marketing")
 text(rpDT1_p, use.n=TRUE, all=TRUE, cex=.7)
 
-   # Compare with the unpruned tree -- do you notice how it has been pruned It is still a large tree after prunning. 
+   # Compare with the unpruned tree -- do you notice how it has been pruned. It is still a large tree after prunning. 
 
 ```
 Performance on the training data
@@ -188,22 +202,6 @@ predDT1<-predict(rpDT1_p, mData, type='class')
 table(actuals=bData$y, preds=predDT1)
 ```
 
-
-Training and Validation Sets
-```{r}
-#Splitting the data into training and test(validation) sets - 70% for training, 30% for validation
-nr=nrow(mData)
-trnIndex = sample(1:nr, size = round(0.7*nr), replace=FALSE) #randomly choosing 70% of row-indices
-mdTrn=mData[trnIndex,]   #training data with the randomly selected row-indices
-mdTst = mData[-trnIndex,]  #test data with the other row-indices
-
-dim(mdTrn) 
-dim(mdTst)
-```
-
-
-2a. Develop rpart Decision Tree Model
-```{r}
 #develop a tree on the training data
 rpDT2=rpart(y ~ ., data=mdTrn, method="class",  control = rpart.control(cp = 0.0), parms=list(prior=c(.5,.5)) )
 
