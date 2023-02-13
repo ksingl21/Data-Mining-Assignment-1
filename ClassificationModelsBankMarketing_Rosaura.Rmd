@@ -453,10 +453,21 @@ barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
 library(gbm)
 
 #gbm looks for 0,1 values in the dependent variable -- obtained here using unclass()
-gbm_M1_1000_0.025 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
+gbm_M1_1000_0.025 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)
+
+gbm_M1_500_0.025 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=500, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)
+
+gbm_M1_1000_0.125 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=1000, shrinkage=0.125, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)
+
+gbm_M1_500_0.125 <- gbm(formula=unclass(y)-1 ~., data=mdTrn,distribution = "bernoulli", n.trees=500, shrinkage=0.125, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)
 
 #Determine best iteration
 bestIter_1000_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
+bestIter_500_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
+bestIter_1000_0.125 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
+bestIter_500_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
+
+#Choosing n.trees = 1000 and shrinkage = 0.025
 
 #Variable Importance
 summary(gbm_M1_1000_0.025)
@@ -464,23 +475,9 @@ summary(gbm_M1_1000_0.025)
 gbm_M1Trn<- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
 head(scores_gbmM1)
 
-#Test Data, kept at n=1000 and shrinkage is 0.025
-gbm_M1Tst <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
-
-
-
-
-#plot of cv performance by iterations
-bestIter<-gbm.perf(gbm_M1, method='cv')
-  
-   #Best Iteration according to plot was a vertical dashed blue line right before the number 800 on the x-axis (n=1000, sh=0.025)
-   #400 when n=500, sh=0.025
-
-scores_gbmM1<- predict(gbm_M1, newdata = mdTrn, n.tree= bestIter, type="response")
-head(scores_gbmM1)
      
-     #Lift Analysis ntree=1000, shrinkage 0.025
-predTrnProb=predict(gbm_M1, mdTrn, type='prob')
+#Lift Analysis gbm_M1Trn
+predTrnProb=predict(gbm_M1Trn, mdTrn, type='prob')
 head(predTrnProb)
 
 trnSc <- mdTrn %>%  select("y")   
@@ -658,7 +655,7 @@ rfROCPred <- prediction( rfPred, mdTst$y, label.ordering = c("no", "yes") )
 rfPerfROC <- performance(rfROCPred, "tpr", "fpr")
 plot(rfPerfROC, add=TRUE, col='green') 
 
-#gbm model
+#gbm model - choosing gbm_M1Trn
 gbmPred <- predict(gbm_M1, newdata = mdTst, n.tree= bestIter, type="response")
 gbmROCPred <- prediction( gbmPred, mdTst$y, label.ordering = c("no", "yes") )
 gbmPerfROC <- performance(gbmROCPred, "tpr", "fpr")
