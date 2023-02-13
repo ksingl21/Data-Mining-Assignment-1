@@ -360,91 +360,45 @@ C5imp(c5DT1)
 library('randomForest')
 set.seed(576)
 
-rfModel = randomForest(y ~ ., data=mdTrn, ntree=200, importance=TRUE )
-importance(rfModel) %>% view()
-varImpPlot(rfModel)
-
-#Accuracy-
-accPerf <-performance(rocPredTst, "acc")
- plot(accPerf)
-
-#AUC-
-aucPerf=performance(rocPredTst, "auc")
-aucPerf@y.values
+rfModel200 = randomForest(y ~ ., data=mdTrn, ntree=200, importance=TRUE )
+importance(rfModel200) %>% view()
+varImpPlot(rfModel200)
 
 
-rfModel = randomForest(y ~ ., data=mdTrn, ntree=100, importance=TRUE )
-importance(rfModel) %>% view()
-varImpPlot(rfModel)
-
-#Accuracy-
-accPerf <-performance(rocPredTst, "acc")
- plot(accPerf)
-
-#AUC-
-aucPerf=performance(rocPredTst, "auc")
-aucPerf@y.values
+rfModel100 = randomForest(y ~ ., data=mdTrn, ntree=100, importance=TRUE )
+importance(rfModel100) %>% view()
+varImpPlot(rfModel100)
 
 
-rfModel = randomForest(y ~ ., data=mdTrn, ntree=50, importance=TRUE )
-importance(rfModel) %>% view()
-varImpPlot(rfModel)
+rfModel50 = randomForest(y ~ ., data=mdTrn, ntree=50, importance=TRUE )
+importance(rfModel50) %>% view()
+varImpPlot(rfModel50)
 
-#Accuracy-
-accPerf <-performance(rocPredTst, "acc")
- plot(accPerf)
-
-#AUC-
-aucPerf=performance(rocPredTst, "auc")
-aucPerf@y.values
-
-
+#Choosing ntree = 100
 
 #Classification performance
-CTHRESH = 0.5
+CTHRESH0.5 = 0.5
 
-#Training Data
-rfPred<-predict(rfModel,mdTrn, type="prob")
-pred = ifelse(rfPred[, 'yes'] >= CTHRESH, 'yes', 'no')
-table( pred = pred, true=mdTrn$y)
-mean(pred==mdTrn$y)
+rfPredTrn0.5 <- predict(rfModel100,mdTrn, type="prob")
+pred0.5 = ifelse(rfPredTrn0.5[, 'yes'] >= CTHRESH0.5, 'yes', 'no')
+table( pred0.5 = pred0.5, true=mdTrn$y)
+mean(pred0.5==mdTrn$y)
 
-rfPred<-predict(rfModel,mdTst, type="prob")
-pred = ifelse(rfPred[, 'yes'] >= CTHRESH, 'yes', 'no')
-table( pred = pred, true=mdTst$y)
-mean(pred==mdTst$y)
+CTHRESH0.1 = 0.1
+
+rfPredTrn0.1 <- predict(rfModel100,mdTrn, type="prob")
+pred0.1 = ifelse(rfPredTrn0.1[, 'yes'] >= CTHRESH0.1, 'yes', 'no')
+table( pred0.1 = pred0.1, true=mdTrn$y)
+mean(pred0.1==mdTrn$y)
+
+rfPredTst <-predict(rfModel100,mdTst, type="prob")
+predTst = ifelse(rfPredTst[, 'yes'] >= CTHRESH0.1, 'yes', 'no')
+table( predTst = predTst, true=mdTst$y)
+mean(predTst==mdTst$y)
 
 
-#Roc Curve
-perf_rfTst=performance(prediction(predict(rfModel,mdTst, type="prob")[,2], mdTst$y), "tpr", "fpr")
-plot(perf_rfTst)
 ```
 
-
-##Lift Analysis
-predTrnProb=predict(rfModel, mdTrn, type='prob')
-head(predTrnProb)
-
-trnSc <- mdTrn %>%  select("y")   
-trnSc$score<-predTrnProb[, 2]
-
-trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
-trnSc$cumResponse<-cumsum(trnSc$y == "yes")
-trnSc[1:10,]
-plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")
-
-trnSc["y"]<- ntile(-trnSc[,"score"], 10) 
-
-dLifts <- trnSc %>% group_by(numResponse) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
-respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
-
-
-
-summary(dLifts)
-
-plot(dLifts$numResponse, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
-barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
 
 
 
@@ -473,54 +427,8 @@ bestIter_500_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
 summary(gbm_M1_1000_0.025)
 
 gbm_M1Trn <- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
-head(scores_gbmM1)
+head(gbm_M1Trn)
 
-     
-#Lift Analysis gbm_M1Trn
-predTrnProb=predict(gbm_M1Trn, mdTrn, type='prob')
-head(predTrnProb)
-
-trnSc <- mdTrn %>%  select("y")   
-trnSc$score<-predTrnProb[, 2]
-
-trnSc<-trnSc[order(trnSc$score, decreasing=TRUE),]
-trnSc$cumResponse<-cumsum(trnSc$y == "yes")
-trnSc[1:10,]
-plot( trnSc$cumResponse, type = "l", xlab='#cases', ylab='#default')
-abline(0,max(trnSc$cumResponse)/nrow(trnSc), col="blue")
-
-trnSc["bucket"]<- ntile(-trnSc[,"score"], 10) 
-
-dLifts <- trnSc %>% group_by(bucket) %>% summarize(count=n(), numResponse=sum(y=="yes"), 
-respRate=numResponse/count,  cumRespRate=cumsum(numResponse)/cumsum(count), lift = cumRespRate/(sum(trnSc$y=="yes")/nrow(trnSc)) ) 
-summary(dLifts)
-
-plot(dLifts$numResponse, dLifts$lift, xlab="deciles", ylab="Cumulative Decile Lift", type="l")
-barplot(dLifts$numResponse, main="numDefaults by decile", xlab="deciles")
-
-
-
-library('ROCR')
-#ROC curve
-pred_gbmM1 <- prediction( scores_gbmM1, mdTrn$y, label.ordering = c("no", "yes"))
-rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
-plot(rocPerf_gbmM1)
-abline(a=0, b= 1)
-
-#comparing to test data
- gbm_M1 <- gbm(formula=unclass(y)-1 ~., data=mdTst,distribution = "bernoulli", n.trees=1000, shrinkage=0.025, interaction.depth = 4, bag.fraction=0.5, cv.folds = 5,  n.cores=NULL)  
-
-summary(gbm_M1)
- bestIter<-gbm.perf(gbm_M1, method='cv')
-scores_gbmM1<- predict(gbm_M1, newdata = mdTst, n.tree= bestIter, type="response")
-
-head(scores_gbmM1)
-#[1] 0.06513680 0.04140867 0.08542534 0.04872887 0.18309469 0.11230618
-
-pred_gbmM1 <- prediction( scores_gbmM1, mdTst$y, label.ordering = c("no", "yes"))
-rocPerf_gbmM1 <-performance(pred_gbmM1, "tpr","fpr")
-plot(rocPerf_gbmM1)
-abline(a=0, b= 1)
 ```
 
 
@@ -649,7 +557,7 @@ dtrROCPred <- prediction( dtrPred, mdTst$y, label.ordering = c("no", "yes") )
 dtrPerfROC <- performance(dtrROCPred, "tpr", "fpr")
 plot(dtrPerfROC, add=TRUE, col='blue') 
 
-#random forest model
+#random forest model - choosing rfModel100
 rfPred <-predict(rfModel,mdTst, type="prob")[, 'yes']
 rfROCPred <- prediction( rfPred, mdTst$y, label.ordering = c("no", "yes") )
 rfPerfROC <- performance(rfROCPred, "tpr", "fpr")
@@ -661,7 +569,7 @@ gbmROCPred <- prediction( gbmPred, mdTst$y, label.ordering = c("no", "yes") )
 gbmPerfROC <- performance(gbmROCPred, "tpr", "fpr")
 plot(gbmPerfROC, add=TRUE, col='red')
 
-#naive-Bayes model - choosing nbm2
+#naive-Bayes model - choosing nbM2
 nbPred <- predict(nbM1, mdTst, type='prob')[, "yes"]
 nbROCPred <- prediction( nbPred, mdTst$y, label.ordering = c("no", "yes") )
 nbPerfROC <- performance(nbROCPred, "tpr", "fpr")
