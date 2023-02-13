@@ -565,3 +565,21 @@ plot(c5PerfROC, add=TRUE, col='orange')
 #Add legend
 legend('bottomright', c('c5', 'rpart', 'rf', 'gbm'), lty=1, col=c('orange', 'blue', 'green', 'red'))
 abline(0,1)  #add the diagonal reference line
+
+
+#Performance comparison
+#rpart perfoamce
+rpaccPerf <-performance(dtrROCPred, "acc")
+plot(rpaccPerf,col='blue')
+#c5 perfoamce
+c5accPerf <-performance(c5ROCPred, "acc")
+plot(c5accPerf,add=TRUE,col='Red')
+#gbm perfoamce
+gbmaccPerf <-performance(gbmROCPred , "acc")
+plot(gbmaccPerf,add=TRUE,col='Orange')
+#RF perfoamce
+rfaccPerf <-performance(rfROCPred, "acc")
+plot(rfaccPerf,add=TRUE,col='Green')
+#Add legend
+legend('bottomright', c('c5', 'rpart', 'rf', 'gbm'), lty=1, col=c('Red', 'blue', 'green', 'Orange'))
+abline(0,1)  #add the diagonal reference line
