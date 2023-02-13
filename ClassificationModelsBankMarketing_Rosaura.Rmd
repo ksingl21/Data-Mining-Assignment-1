@@ -74,7 +74,7 @@ ggplot(bData, aes(age,  color=y) ) + geom_boxplot()
 ggplot(bData, aes(age,  color=y) ) + geom_density()
 
 #view response by different age ranges 
-bData$ageGroup <- cut(bData$age, breaks = c(0, 30, 40, 50, 60, 100))
+bData$ageRanges <- cut(bData$age, breaks = c(0, 30, 40, 50, 60, 100))
 bData %>% group_by(ageRanges, y) %>% tally()
 bData %>% group_by(ageRanges, y) %>% tally() %>% mutate(propResp=n/sum(n))
 
@@ -260,51 +260,6 @@ mean(predTst==mdTst$y)
 ```
 
 
-
-ROC curves (using the ROCR package)
-```{r}
-library('ROCR')
-
-#obtain the scores from the model for the class of interest, here, the prob('default')
-scoreTst=predict(rpDT2_p, mdTst, type="prob")[,'yes']  
-   #same as predProbTst
-
-#now apply the prediction function from ROCR to get a prediction object
-rocPredTst = prediction(scoreTst, mdTst$y, label.ordering = c('no', 'yes'))  
-
-#obtain performance using the function from ROCR, then plot
-perfROCTst=performance(rocPredTst, "tpr", "fpr")
-plot(perfROCTst)
-abline(0,1)
-
-
-#How does this compare with the training data?
-
-
-#AUC value
-aucPerf=performance(rocPredTst, "auc")
-aucPerf@y.values
-
-#Accuracy 
-accPerf <-performance(rocPredTst, "acc")
-plot(accPerf)
-
- #optimal threshold for max overall accuracy
-accPerf@x.values[[1]][which.max(accPerf@y.values[[1]])]
-
-
-#optimal cost with different costs for fp and fn
-costPerf = performance(rocPredTst, "cost", cost.fp = 1, cost.fn = 3)
-costPerf@x.values[[1]][which.min(costPerf@y.values[[1]])]
-
-
-
-
-#Q. are these plots similar to what we obtained earlier from our own calculations
-
-```
-
-
 2b. Develop C50 Decision Tree and Rules
 ```{r}
 #Develop C5.0 Model
@@ -376,7 +331,7 @@ varImpPlot(rfModel50)
 
 #Choosing ntree = 100
 
-#Classification performance
+#Classification Performance on Train Data
 CTHRESH0.5 = 0.5
 
 rfPredTrn0.5 <- predict(rfModel100,mdTrn, type="prob")
@@ -384,15 +339,18 @@ pred0.5 = ifelse(rfPredTrn0.5[, 'yes'] >= CTHRESH0.5, 'yes', 'no')
 table( pred0.5 = pred0.5, true=mdTrn$y)
 mean(pred0.5==mdTrn$y)
 
+
 CTHRESH0.1 = 0.1
 
-rfPredTrn0.1 <- predict(rfModel100,mdTrn, type="prob")
+rfPredTrn0.1 <- predict(rfModel100, mdTrn, type="prob")
 pred0.1 = ifelse(rfPredTrn0.1[, 'yes'] >= CTHRESH0.1, 'yes', 'no')
 table( pred0.1 = pred0.1, true=mdTrn$y)
 mean(pred0.1==mdTrn$y)
 
-rfPredTst <-predict(rfModel100,mdTst, type="prob")
-predTst = ifelse(rfPredTst[, 'yes'] >= CTHRESH0.1, 'yes', 'no')
+
+#Performance on Test Data
+rfPredTst <-predict(rfModel100, mdTst, type="prob")
+predTst = ifelse(rfPredTst[, 'yes'] >= CTHRESH0.5, 'yes', 'no')
 table( predTst = predTst, true=mdTst$y)
 mean(predTst==mdTst$y)
 
@@ -426,8 +384,18 @@ bestIter_500_0.025 <- gbm.perf(gbm_M1_1000_0.025, method='cv')
 #Variable Importance
 summary(gbm_M1_1000_0.025)
 
-gbm_M1Trn <- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.25, type="response")
+gbm_M1Trn <- predict(gbm_M1_1000_0.025, newdata = mdTrn, n.tree= bestIter_1000_0.025, type="response")
 head(gbm_M1Trn)
+
+#performance on Training Data
+gbmPredTrn = predict(gbm_M1Trn, mdTrn, type='class')
+table( gbmPredTrn = gbmPredTrn, true=mdTrn$y)
+mean(gbmPredTrn==mdTrn$y)
+
+#performance on Test Data
+gbmPredTst = predict(gbm_M1Trn, mdTst)
+table( gbmPredTst = gbmPredTst, true=mdTst$y)
+mean(gbmPredTst==mdTst$y)
 
 ```
 
@@ -451,6 +419,35 @@ table(pred=nbPred1Trn[, 2] > THRESH2, actual=mdTrn$y)
 THRESH3=0.8
 table(pred=nbPred1Trn[, 2] > THRESH3, actual=mdTrn$y)
 
+
+#performance on Training Data
+nbPred1Trn = predict(nbM1, mdTrn)
+table( nbPred1Trn = nbPred1Trn, true=mdTrn$y)
+mean(nbPred1Trn==mdTrn$y)
+
+#performance on Test Data
+nbPred1Tst = predict(nbM1, mdTst)
+table( nbPred1Tst = nbPred1Tst, true=mdTst$y)
+mean(nbPred1Tst==mdTst$y)
+
+# Develop a naive bayes model with KDE -----------------------------------------
+nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
+plot(nbM2)
+summary(nbM2)
+
+#performance on Training Data
+nbPred2Trn = predict(nbM2, mdTrn)
+table( nbPred2Trn = nbPred2Trn, true=mdTrn$y)
+mean(nbPred2Trn==mdTrn$y)
+
+#performance on Test Data
+nbPred2Tst = predict(nbM2, mdTst)
+table( nbPred2Tst = nbPred2Tst, true=mdTst$y)
+mean(nbPred2Tst==mdTst$y)
+
+```
+
+```{r}
 #ROC curve for nbM1 trn
 pred_nbM1Trn = prediction(nbPred1Trn[,2], mdTrn$y)
 perf_nbM1Trn <- performance(pred_nbM1Trn, "tpr","fpr")
@@ -493,14 +490,7 @@ sc_nbM1Tst$cumResponse<-cumsum(sc_nbM1Tst$y == "yes")
 plot(sc_nbM1Tst$cumResponse, type = "l", xlab='#cases', ylab='#default')
 abline(0,max(sc_nbM1Tst$cumResponse)/nrow(sc_nbM1Tst), col="blue")  #diagonal line
 
-
-# Develop a naive bayes model with KDE -----------------------------------------
-nbM2<-naive_bayes(y ~ ., data = mdTrn, usekernel = T) 
-plot(nbM2)
-summary(nbM2)
-
-nbPred2Trn = predict(nbM2, mdTrn, type='prob')
-
+----------------------------------------------------------------------------------
 #ROC curve for nbM2 trn
 pred_nbM2Trn = prediction(nbPred2Trn[,2], mdTrn$y)
 perf_nbM2Trn <- performance(pred_nbM2Trn, "tpr","fpr")
@@ -545,7 +535,6 @@ abline(0,max(sc_nbM2Tst$cumResponse)/nrow(sc_nbM2Tst), col="blue")  #diagonal li
 
 
 ```
-
 
 
 
